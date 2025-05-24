@@ -1,25 +1,58 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../lib/stores/authStore';
 
 export default function CredentialSetup() {
-  const { setCredentials, isAuthenticated, dhisBaseUrl } = useAuthStore();
+  const { setCredentials, isAuthenticated, dhisBaseUrl, clearCredentials } = useAuthStore();
   const [formData, setFormData] = useState({
-    baseUrl: 'https://your-dhis2-instance.org',
+    baseUrl: dhisBaseUrl || 'https://your-dhis2-instance.org',
     username: '',
     password: ''
   });
   const [testing, setTesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+
+  // Load existing values on component mount
+  useEffect(() => {
+    if (dhisBaseUrl) {
+      setFormData(prev => ({ ...prev, baseUrl: dhisBaseUrl }));
+    }
+  }, [dhisBaseUrl]);
+
+  const normalizeBaseUrl = (url: string): string => {
+    let normalizedUrl = url.trim();
+    
+    // Remove trailing slash if present
+    if (normalizedUrl.endsWith('/')) {
+      normalizedUrl = normalizedUrl.slice(0, -1);
+    }
+    
+    // Ensure URL has protocol
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = `https://${normalizedUrl}`;
+    }
+    
+    return normalizedUrl;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setTesting(true);
+    setError(null);
+    setSuccess(false);
     
     try {
-      // Test the credentials
+      // Normalize the base URL
+      const normalizedBaseUrl = normalizeBaseUrl(formData.baseUrl);
+      
+      // Create auth token
       const authToken = btoa(`${formData.username}:${formData.password}`);
-      const testUrl = `${formData.baseUrl}/api/me.json`;
+      
+      // Test the credentials - we'll test against /api/me endpoint
+      const testUrl = `${normalizedBaseUrl}/api/me.json`;
+      console.log('Testing connection to:', testUrl);
       
       const response = await fetch(testUrl, {
         headers: {
@@ -29,23 +62,40 @@ export default function CredentialSetup() {
       });
       
       if (response.ok) {
-        setCredentials(formData.baseUrl, formData.username, formData.password);
-        alert('Credentials saved successfully!');
+        // Save credentials to the store
+        setCredentials(normalizedBaseUrl, formData.username, formData.password);
+        setSuccess(true);
+        
+        // Reset error if there was one
+        setError(null);
       } else {
-        alert(`Authentication failed: ${response.status} ${response.statusText}`);
+        setError(`Authentication failed: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      alert(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Connection error:', error);
+      setError(`Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setTesting(false);
     }
+  };
+
+  const handleReset = () => {
+    clearCredentials();
+    setSuccess(false);
   };
 
   if (isAuthenticated) {
     return (
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <h3 className="font-semibold text-green-900 mb-2">✓ Authenticated</h3>
-        <p className="text-green-800 text-sm">Connected to: {dhisBaseUrl}</p>
+        <p className="text-green-800 text-sm mb-3">Connected to: {dhisBaseUrl}</p>
+        
+        <button
+          onClick={handleReset}
+          className="text-sm bg-gray-100 text-gray-700 px-3 py-1 rounded hover:bg-gray-200"
+        >
+          Reset Credentials
+        </button>
       </div>
     );
   }
@@ -53,6 +103,18 @@ export default function CredentialSetup() {
   return (
     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
       <h3 className="font-semibold text-yellow-900 mb-4">DHIS2 Credentials Setup</h3>
+      
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+          <p className="text-red-700 text-sm">{error}</p>
+        </div>
+      )}
+      
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded p-3 mb-4">
+          <p className="text-green-700 text-sm">Credentials saved successfully!</p>
+        </div>
+      )}
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -65,6 +127,9 @@ export default function CredentialSetup() {
             placeholder="https://your-dhis2-instance.org"
             required
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Example: https://play.dhis2.org/demo
+          </p>
         </div>
         
         <div>

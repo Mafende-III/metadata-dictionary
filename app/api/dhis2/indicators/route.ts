@@ -5,7 +5,7 @@ import { CacheService, SessionService } from '../../../../lib/supabase';
 import { Indicator, MetadataFilter } from '../../../../types/metadata';
 
 // Handle GET request to fetch indicators or a specific indicator
-export async function GET(req: NextRequest, context?: { params?: { id?: string } }) {
+export async function GET(req: NextRequest) {
   try {
     // Get session ID from query params
     const { searchParams } = new URL(req.url);
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, context?: { params?: { id?: string }
     const dhis2Client = DHIS2Client.fromSession(session);
 
     // Check if we're fetching a specific indicator by ID
-    const id = context?.params?.id || searchParams.get('id');
+    const id = searchParams.get('id');
     
     if (id) {
       // FETCH SPECIFIC INDICATOR BY ID

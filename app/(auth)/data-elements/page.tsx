@@ -11,12 +11,14 @@ import { DataElement } from '../../../types/metadata';
 import { ExportButton } from '../../../components/metadata/ExportButton';
 import { ExportFormat, ExportService } from '../../../lib/export';
 import { METADATA_TYPES } from '../../../lib/constants';
+import SqlViewDataDisplay from '../../../components/metadata/SqlViewDataDisplay';
 
 export default function DataElementsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { session } = useDHIS2Auth();
   const [groupOptions, setGroupOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [activeTab, setActiveTab] = useState<'table' | 'sqlview'>('table');
   
   // Initialize filters from URL search params
   const initialFilters = {
@@ -142,37 +144,71 @@ export default function DataElementsPage() {
         </div>
       </div>
       
-      <div className="flex flex-col md:flex-row md:space-x-6">
-        {/* Filters sidebar */}
-        <div className="w-full md:w-64 flex-shrink-0 mb-6 md:mb-0">
-          <MetadataFilters
-            filters={filters}
-            onFilterChange={handleFilterChange}
-            onReset={resetFilters}
-            groupOptions={groupOptions}
-          />
-        </div>
-        
-        {/* Main content */}
-        <div className="flex-1">
-          {error ? (
-            <div className="bg-red-50 p-4 rounded-md">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          ) : (
-            <MetadataTable
-              data={metadata}
-              basePath="/data-elements"
-              isLoading={isLoading}
-              pagination={pagination}
-              filters={filters}
-              onPageChange={handlePageChange}
-              onPageSizeChange={handlePageSizeChange}
-              onSortChange={handleSortChange}
-            />
-          )}
-        </div>
+      {/* Tab Navigation */}
+      <div className="border-b mb-6">
+        <nav className="flex space-x-8">
+          <button
+            onClick={() => setActiveTab('table')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'table'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Standard View
+          </button>
+          <button
+            onClick={() => setActiveTab('sqlview')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'sqlview'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            SQL View Analysis
+          </button>
+        </nav>
       </div>
+
+      {/* SQL View Data Display (shown only when that tab is active) */}
+      {activeTab === 'sqlview' && (
+        <SqlViewDataDisplay category="data_elements" />
+      )}
+      
+      {/* Only show the regular table view when that tab is active */}
+      {activeTab === 'table' && (
+        <div className="flex flex-col md:flex-row md:space-x-6">
+          {/* Filters sidebar */}
+          <div className="w-full md:w-64 flex-shrink-0 mb-6 md:mb-0">
+            <MetadataFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onReset={resetFilters}
+              groupOptions={groupOptions}
+            />
+          </div>
+          
+          {/* Main content */}
+          <div className="flex-1">
+            {error ? (
+              <div className="bg-red-50 p-4 rounded-md">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            ) : (
+              <MetadataTable
+                data={metadata}
+                basePath="/data-elements"
+                isLoading={isLoading}
+                pagination={pagination}
+                filters={filters}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+                onSortChange={handleSortChange}
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

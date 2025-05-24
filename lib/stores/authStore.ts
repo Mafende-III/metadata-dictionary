@@ -17,7 +17,7 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      dhisBaseUrl: '',
+      dhisBaseUrl: process.env.NEXT_PUBLIC_DHIS2_BASE_URL || '',
       username: '',
       password: '',
       authToken: '',
@@ -36,7 +36,7 @@ export const useAuthStore = create<AuthStore>()(
       
       clearCredentials: () => {
         set({
-          dhisBaseUrl: '',
+          dhisBaseUrl: process.env.NEXT_PUBLIC_DHIS2_BASE_URL || '',
           username: '',
           password: '',
           authToken: '',

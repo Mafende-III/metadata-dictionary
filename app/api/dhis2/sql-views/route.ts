@@ -1,145 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DHIS2Client } from '../../../../lib/dhis2';
-import { QualityAssessmentService } from '../../../../lib/quality-assessment';
-import { CacheService, SessionService } from '../../../../lib/supabase';
-import { SQLView, MetadataFilter } from '../../../../types/metadata';
+import { SqlViewService, SqlViewExecutionOptions } from '@/lib/services/sqlViewService';
 
-// Handle GET request to fetch SQL views or a specific SQL view
-export async function GET(req: NextRequest, context?: { params?: { id?: string } }) {
+export async function POST(request: NextRequest) {
   try {
-    // Get session ID from query params
-    const { searchParams } = new URL(req.url);
-    const sessionId = searchParams.get('sessionId');
+    const body = await request.json();
+    const { action, sqlViewId, options, variables, name, cacheId } = body;
     
-    // Validate session
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Session ID is required' },
-        { status: 401 }
-      );
-    }
-    
-    // Get session from Supabase
-    const session = await SessionService.getSession(sessionId);
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Invalid or expired session' },
-        { status: 401 }
-      );
-    }
-    
-    // Create DHIS2 client from session
-    const dhis2Client = DHIS2Client.fromSession(session);
+    // Create service instance - TODO: Add proper auth when available
+    const service = new SqlViewService();
 
-    // Check if we're fetching a specific SQL view by ID
-    const id = context?.params?.id || searchParams.get('id');
-    
-    if (id) {
-      // FETCH SPECIFIC SQL VIEW BY ID
-      
-      // Check if we have a cached response
-      const cachedResponse = await CacheService.getCachedMetadata<SQLView>(
-        session.id,
-        'SQL_VIEW',
-        id
-      );
-      
-      // If we have a valid cache, return it
-      if (cachedResponse.found && !cachedResponse.expired) {
-        return NextResponse.json({
-          metadata: cachedResponse.item?.metadata,
-          quality: cachedResponse.item?.qualityAssessment,
-        });
-      }
-      
-      // Fetch SQL view from DHIS2
-      const sqlView = await dhis2Client.getMetadataById('SQL_VIEW', id);
-      
-      // Assess quality
-      const qualityAssessment = QualityAssessmentService.assessMetadata(
-        sqlView,
-        'SQL_VIEW'
-      );
-      
-      // Cache the result
-      await CacheService.cacheMetadata(
-        session.id,
-        'SQL_VIEW',
-        sqlView,
-        qualityAssessment
-      );
-      
-      // Return the processed data
-      return NextResponse.json({
-        metadata: sqlView,
-        quality: qualityAssessment,
-      });
-    } else {
-      // FETCH LIST OF SQL VIEWS
-      
-      // Build filters from query params
-      const filters: MetadataFilter = {
-        search: searchParams.get('search') || undefined,
-        page: searchParams.get('page') ? Number(searchParams.get('page')) : undefined,
-        pageSize: searchParams.get('pageSize') ? Number(searchParams.get('pageSize')) : undefined,
-        sortBy: searchParams.get('sortBy') || undefined,
-        sortDirection: (searchParams.get('sortDirection') as 'asc' | 'desc') || undefined,
-      };
-      
-      // Check if we have a cached response
-      const cacheKey = `sql-views-${JSON.stringify(filters)}`;
-      const cachedResponse = await CacheService.getCachedMetadata<SQLView>(
-        session.id,
-        'SQL_VIEW',
-        cacheKey
-      );
-      
-      // If we have a valid cache, return it
-      if (cachedResponse.found && !cachedResponse.expired) {
-        return NextResponse.json({
-          items: [cachedResponse.item],
-          pager: {
-            page: filters.page || 1,
-            pageCount: 1,
-            total: 1,
-            pageSize: filters.pageSize || 50,
-          },
-        });
-      }
-      
-      // Fetch SQL views from DHIS2
-      const response = await dhis2Client.getSQLViews(filters);
-      
-      // Extract SQL views and map to our format
-      const sqlViews = response.sqlViews || [];
-      
-      // Process each SQL view and add quality assessment
-      const processedElements = sqlViews.map(sqlView => {
-        // Assess quality
-        const qualityAssessment = QualityAssessmentService.assessMetadata(
-          sqlView,
-          'SQL_VIEW'
-        );
-        
-        // Return combined object
-        return {
-          metadata: sqlView,
-          quality: qualityAssessment,
-        };
-      });
-      
-      // Return the processed data
-      return NextResponse.json({
-        items: processedElements,
-        pager: response.pager,
-      });
+    switch (action) {
+      case 'execute':
+        const result = variables 
+          ? await service.executeQueryView(sqlViewId, variables, options)
+          : await service.executeView(sqlViewId, options);
+        return NextResponse.json(result);
+
+      case 'refresh':
+        await service.refreshMaterializedView(sqlViewId);
+        return NextResponse.json({ success: true });
+
+      case 'metadata':
+        const metadata = await service.getSqlViewMetadata(sqlViewId);
+        return NextResponse.json(metadata);
+
+      case 'extractVariables':
+        const vars = service.extractVariables(body.sqlQuery);
+        return NextResponse.json({ variables: vars });
+
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
-  } catch (error: any) {
-    console.error('Error fetching SQL views:', error);
-    
+  } catch (error: unknown) {
+    console.error('SQL View API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: error.message || 'Failed to fetch SQL views' },
+      { error: 'Internal server error', details: errorMessage },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const sqlViewId = searchParams.get('id');
+
+    if (!sqlViewId) {
+      return NextResponse.json({ error: 'SQL View ID required' }, { status: 400 });
+    }
+
+    const service = new SqlViewService();
+    const metadata = await service.getSqlViewMetadata(sqlViewId);
+    
+    return NextResponse.json(metadata);
+  } catch (error: unknown) {
+    console.error('Failed to get SQL view metadata:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json(
+      { error: 'Failed to retrieve SQL view metadata', details: errorMessage },
       { status: 500 }
     );
   }
