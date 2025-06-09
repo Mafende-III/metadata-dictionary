@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Type, Hash, ToggleLeft, ToggleRight } from 'lucide-react';
+import { useAuthStore } from '@/lib/stores/authStore';
 
 interface SqlViewVariable {
   name: string;
@@ -31,25 +32,43 @@ export default function SqlViewParameterInput({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Get authentication from store
+  const { getAuthToken, getDhisBaseUrl, isAuthenticated } = useAuthStore();
+
   // Extract variables from SQL query
   useEffect(() => {
     if (sqlQuery) {
       const extractedVars = extractVariablesFromQuery(sqlQuery);
       setVariables(extractedVars);
-    } else if (sqlViewId) {
+    } else if (sqlViewId && isAuthenticated) {
       fetchSqlViewMetadata();
     }
-  }, [sqlQuery, sqlViewId]);
+  }, [sqlQuery, sqlViewId, isAuthenticated]);
 
   // Fetch SQL view metadata to get the query and extract variables
   const fetchSqlViewMetadata = async () => {
+    if (!isAuthenticated) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
     try {
-      const response = await fetch(`/api/dhis2/sql-views?id=${sqlViewId}`);
+      const authToken = getAuthToken();
+      const baseUrl = getDhisBaseUrl();
+
+      const response = await fetch(`/api/dhis2/sql-views?id=${sqlViewId}`, {
+        headers: {
+          'Authorization': `Basic ${authToken}`,
+          'x-dhis2-base-url': baseUrl,
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch SQL view metadata');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to fetch SQL view metadata');
       }
       
       const metadata = await response.json();

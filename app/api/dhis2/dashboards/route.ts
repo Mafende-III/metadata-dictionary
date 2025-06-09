@@ -3,6 +3,7 @@ import { DHIS2Client } from '../../../../lib/dhis2';
 import { QualityAssessmentService } from '../../../../lib/quality-assessment';
 import { CacheService, SessionService } from '../../../../lib/supabase';
 import { Dashboard, MetadataFilter } from '../../../../types/metadata';
+import { getSession } from '../../../../lib/services/sessionService';
 
 // Handle GET request to fetch dashboards or a specific dashboard
 export async function GET(req: NextRequest) {
@@ -10,137 +11,160 @@ export async function GET(req: NextRequest) {
     // Get session ID from query params
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('sessionId');
+    let dhis2Client: DHIS2Client | null = null;
+    let authSource = 'none';
     
-    // Validate session
-    if (!sessionId) {
+    // Check for sessionId parameter first (consistent with proxy API endpoint)
+    if (sessionId) {
+      try {
+        const session = await SessionService.getSession(sessionId);
+        if (session) {
+          // Session from Supabase doesn't have token, so we need auth header
+          const authHeader = req.headers.get('authorization');
+          if (authHeader && authHeader.startsWith('Basic ')) {
+            const token = authHeader.replace('Basic ', '');
+            dhis2Client = new DHIS2Client(session.serverUrl, token);
+            authSource = 'supabase-session-with-auth-header';
+            console.log(`🔐 Using Supabase session with auth header for ${session.serverUrl}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error retrieving session:', error);
+      }
+    }
+    
+    // If no client yet, try to get session from cookies
+    if (!dhis2Client) {
+      try {
+        const session = await getSession();
+        if (session && session.token && session.serverUrl) {
+          dhis2Client = DHIS2Client.fromSession(session);
+          authSource = 'cookie-session';
+          console.log(`🔐 Using cookie session for ${session.serverUrl} (user: ${session.username})`);
+        }
+      } catch (error) {
+        console.error('Error getting session from cookies:', error);
+      }
+    }
+    
+    // If still no client, try to get credentials from request headers
+    if (!dhis2Client) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Basic ')) {
+        const token = authHeader.replace('Basic ', '');
+        const baseUrl = req.headers.get('x-dhis2-base-url') || 
+                       process.env.NEXT_PUBLIC_DHIS2_BASE_URL;
+        if (baseUrl) {
+          dhis2Client = new DHIS2Client(baseUrl, token);
+          authSource = 'auth-header-with-base-url';
+          console.log(`🔐 Using auth header with provided base URL: ${baseUrl}`);
+        }
+      }
+    }
+    
+    // Return error if no valid authentication found
+    if (!dhis2Client) {
+      console.error('❌ No valid authentication found for dashboards request');
       return NextResponse.json(
-        { error: 'Session ID is required' },
+        { 
+          error: 'Authentication required',
+          details: 'No valid DHIS2 credentials found. Please ensure you are logged in.',
+          availableAuthMethods: [
+            'sessionId parameter with Authorization header',
+            'Valid session in cookies',
+            'Authorization header with x-dhis2-base-url header'
+          ]
+        },
         { status: 401 }
       );
     }
-    
-    // Get session from Supabase
-    const session = await SessionService.getSession(sessionId);
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Invalid or expired session' },
-        { status: 401 }
-      );
-    }
-    
-    // Create DHIS2 client from session
-    const dhis2Client = DHIS2Client.fromSession(session);
+
+    console.log(`✅ Dashboards authenticated via: ${authSource}`);
 
     // Check if we're fetching a specific dashboard by ID
     const id = searchParams.get('id');
     
     if (id) {
-      // FETCH SPECIFIC DASHBOARD BY ID
+      // Fetch single dashboard
+      const dashboard = await dhis2Client.getDashboard(id);
       
-      // Check if we have a cached response
-      const cachedResponse = await CacheService.getCachedMetadata<Dashboard>(
-        session.id,
-        'DASHBOARD',
-        id
-      );
-      
-      // If we have a valid cache, return it
-      if (cachedResponse.found && !cachedResponse.expired) {
-        return NextResponse.json({
-          metadata: cachedResponse.item?.metadata,
-          quality: cachedResponse.item?.qualityAssessment,
-        });
+      if (!dashboard) {
+        return NextResponse.json(
+          { error: 'Dashboard not found' },
+          { status: 404 }
+        );
       }
       
-      // Fetch dashboard from DHIS2
-      const dashboard = await dhis2Client.getMetadataById('DASHBOARD', id);
+      // Get or create quality assessment
+      const qualityAssessment = QualityAssessmentService.assessMetadata(dashboard, 'DASHBOARD');
       
-      // Assess quality
-      const qualityAssessment = QualityAssessmentService.assessMetadata(
-        dashboard,
-        'DASHBOARD'
-      );
-      
-      // Cache the result
-      await CacheService.cacheMetadata(
-        session.id,
-        'DASHBOARD',
-        dashboard,
-        qualityAssessment
-      );
-      
-      // Return the processed data
       return NextResponse.json({
         metadata: dashboard,
         quality: qualityAssessment,
       });
     } else {
-      // FETCH LIST OF DASHBOARDS
-      
-      // Build filters from query params
+      // Fetch list of dashboards with pagination and filtering
       const filters: MetadataFilter = {
-        search: searchParams.get('search') || undefined,
-        page: searchParams.get('page') ? Number(searchParams.get('page')) : undefined,
-        pageSize: searchParams.get('pageSize') ? Number(searchParams.get('pageSize')) : undefined,
-        sortBy: searchParams.get('sortBy') || undefined,
-        sortDirection: (searchParams.get('sortDirection') as 'asc' | 'desc') || undefined,
+        search: searchParams.get('search') || '',
+        page: Number(searchParams.get('page')) || 1,
+        pageSize: Number(searchParams.get('pageSize')) || 50,
+        sortBy: searchParams.get('sortBy') || 'displayName',
+        sortDirection: (searchParams.get('sortDirection') as 'asc' | 'desc') || 'asc',
       };
       
-      // Check if we have a cached response
-      const cacheKey = `dashboards-${JSON.stringify(filters)}`;
-      const cachedResponse = await CacheService.getCachedMetadata<Dashboard>(
-        session.id,
-        'DASHBOARD',
-        cacheKey
-      );
-      
-      // If we have a valid cache, return it
-      if (cachedResponse.found && !cachedResponse.expired) {
-        return NextResponse.json({
-          items: [cachedResponse.item],
-          pager: {
-            page: filters.page || 1,
-            pageCount: 1,
-            total: 1,
-            pageSize: filters.pageSize || 50,
-          },
-        });
-      }
-      
-      // Fetch dashboards from DHIS2
+      // Get dashboards
       const response = await dhis2Client.getDashboards(filters);
       
-      // Extract dashboards and map to our format
-      const dashboards = response.dashboards || [];
+      // Process and assess quality for each dashboard
+      const metadataWithQuality = await Promise.all(
+        response.dashboards.map(async (dashboard) => {
+          // Check cache first
+          const cacheResult = await CacheService.getCachedMetadata<Dashboard>(
+            sessionId || 'cookie-session',
+            'DASHBOARD',
+            dashboard.id
+          );
+          
+          if (cacheResult.found && !cacheResult.expired) {
+            return {
+              metadata: cacheResult.item!.metadata,
+              quality: cacheResult.item!.qualityAssessment,
+            };
+          }
+          
+          // Assess quality
+          const qualityAssessment = QualityAssessmentService.assessMetadata(dashboard, 'DASHBOARD');
+          
+          // Cache the result
+          try {
+            await CacheService.cacheMetadata(
+              sessionId || 'cookie-session',
+              'DASHBOARD',
+              dashboard,
+              qualityAssessment
+            );
+          } catch (cacheError) {
+            console.warn('Failed to cache metadata:', cacheError);
+          }
+          
+          return {
+            metadata: dashboard,
+            quality: qualityAssessment,
+          };
+        })
+      );
       
-      // Process each dashboard and add quality assessment
-      const processedElements = dashboards.map(dashboard => {
-        // Assess quality
-        const qualityAssessment = QualityAssessmentService.assessMetadata(
-          dashboard,
-          'DASHBOARD'
-        );
-        
-        // Return combined object
-        return {
-          metadata: dashboard,
-          quality: qualityAssessment,
-        };
-      });
-      
-      // Return the processed data
       return NextResponse.json({
-        items: processedElements,
+        items: metadataWithQuality,
         pager: response.pager,
       });
     }
   } catch (error: any) {
-    console.error('Error fetching dashboards:', error);
+    console.error('Error in dashboards API:', error);
     
     return NextResponse.json(
       { error: error.message || 'Failed to fetch dashboards' },
-      { status: 500 }
+      { status: error.httpStatusCode || 500 }
     );
   }
 } 

@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     let client: DHIS2Client | null = null;
+    let authSource = 'none';
     
     // Check for sessionId parameter first (consistent with other API endpoints)
     const sessionId = searchParams.get('sessionId');
@@ -15,15 +16,13 @@ export async function GET(request: NextRequest) {
         const session = await SessionService.getSession(sessionId);
         if (session) {
           // Session from Supabase doesn't have token, so we need to create client differently
-          // For now, we'll use environment defaults or require auth header
-          const baseUrl = session.serverUrl || process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
-          client = new DHIS2Client(baseUrl);
-          
           // Check if auth header is provided for the token
           const authHeader = request.headers.get('authorization');
           if (authHeader && authHeader.startsWith('Basic ')) {
             const token = authHeader.replace('Basic ', '');
-            client.setToken(token);
+            client = new DHIS2Client(session.serverUrl, token);
+            authSource = 'supabase-session-with-auth-header';
+            console.log(`🔐 Using Supabase session with auth header for ${session.serverUrl}`);
           }
         }
       } catch (error) {
@@ -35,8 +34,10 @@ export async function GET(request: NextRequest) {
     if (!client) {
       try {
         const session = await getSession();
-        if (session && session.token) {
+        if (session && session.token && session.serverUrl) {
           client = DHIS2Client.fromSession(session);
+          authSource = 'cookie-session';
+          console.log(`🔐 Using cookie session for ${session.serverUrl} (user: ${session.username})`);
         }
       } catch (error) {
         console.error('Error getting session from cookies:', error);
@@ -47,33 +48,37 @@ export async function GET(request: NextRequest) {
     if (!client) {
       const authHeader = request.headers.get('authorization');
       if (authHeader && authHeader.startsWith('Basic ')) {
-        // Extract base URL from environment or use default
-        const baseUrl = process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
-        
-        // Create client with auth header
-        client = new DHIS2Client(baseUrl);
-        const token = authHeader.replace('Basic ', '');
-        client.setToken(token);
+        // Get base URL from headers or use saved base URL
+        const baseUrl = request.headers.get('x-dhis2-base-url');
+        if (baseUrl) {
+          client = new DHIS2Client(baseUrl);
+          const token = authHeader.replace('Basic ', '');
+          client.setToken(token);
+          authSource = 'auth-header-with-base-url';
+          console.log(`🔐 Using auth header with provided base URL: ${baseUrl}`);
+        }
       }
     }
     
+    // Return error if no valid authentication found (don't fall back to defaults)
     if (!client) {
-      // Fallback to environment credentials for development/demo
-      const defaultBaseUrl = process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
-      const defaultUsername = process.env.DHIS2_DEFAULT_USERNAME || 'admin';
-      const defaultPassword = process.env.DHIS2_DEFAULT_PASSWORD || 'district';
+      console.error('❌ No valid authentication found. Available auth methods:');
+      console.error('  - sessionId param with Authorization header');
+      console.error('  - Valid session in cookies');
+      console.error('  - Authorization header with x-dhis2-base-url header');
       
-      if (defaultUsername && defaultPassword) {
-        client = new DHIS2Client(defaultBaseUrl);
-        const defaultToken = Buffer.from(`${defaultUsername}:${defaultPassword}`).toString('base64');
-        client.setToken(defaultToken);
-        
-        console.warn('Using default DHIS2 credentials - this should only be used for development/demo');
-      } else {
-        return NextResponse.json({ error: 'Not authenticated - no valid session, authorization header, or default credentials found' }, { status: 401 });
-      }
+      return NextResponse.json({ 
+        error: 'Authentication required', 
+        details: 'No valid DHIS2 credentials found. Please log in first.',
+        availableAuthMethods: [
+          'sessionId parameter with Authorization header',
+          'Valid session in cookies',
+          'Authorization header with x-dhis2-base-url header'
+        ]
+      }, { status: 401 });
     }
 
+    console.log(`✅ Authenticated via: ${authSource}`);
     return await handleRequest(client, request);
   } catch (error: any) {
     console.error('Proxy request failed:', error);
@@ -116,6 +121,7 @@ export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     let client: DHIS2Client | null = null;
+    let authSource = 'none';
     
     // Check for sessionId parameter first (consistent with other API endpoints)
     const sessionId = searchParams.get('sessionId');
@@ -124,15 +130,13 @@ export async function POST(request: NextRequest) {
         const session = await SessionService.getSession(sessionId);
         if (session) {
           // Session from Supabase doesn't have token, so we need to create client differently
-          // For now, we'll use environment defaults or require auth header
-          const baseUrl = session.serverUrl || process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
-          client = new DHIS2Client(baseUrl);
-          
           // Check if auth header is provided for the token
           const authHeader = request.headers.get('authorization');
           if (authHeader && authHeader.startsWith('Basic ')) {
             const token = authHeader.replace('Basic ', '');
-            client.setToken(token);
+            client = new DHIS2Client(session.serverUrl, token);
+            authSource = 'supabase-session-with-auth-header';
+            console.log(`🔐 POST: Using Supabase session with auth header for ${session.serverUrl}`);
           }
         }
       } catch (error) {
@@ -144,8 +148,10 @@ export async function POST(request: NextRequest) {
     if (!client) {
       try {
         const session = await getSession();
-        if (session && session.token) {
+        if (session && session.token && session.serverUrl) {
           client = DHIS2Client.fromSession(session);
+          authSource = 'cookie-session';
+          console.log(`🔐 POST: Using cookie session for ${session.serverUrl} (user: ${session.username})`);
         }
       } catch (error) {
         console.error('Error getting session from cookies:', error);
@@ -156,33 +162,34 @@ export async function POST(request: NextRequest) {
     if (!client) {
       const authHeader = request.headers.get('authorization');
       if (authHeader && authHeader.startsWith('Basic ')) {
-        // Extract base URL from environment or use default
-        const baseUrl = process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
-        
-        // Create client with auth header
-        client = new DHIS2Client(baseUrl);
-        const token = authHeader.replace('Basic ', '');
-        client.setToken(token);
+        // Get base URL from headers
+        const baseUrl = request.headers.get('x-dhis2-base-url');
+        if (baseUrl) {
+          client = new DHIS2Client(baseUrl);
+          const token = authHeader.replace('Basic ', '');
+          client.setToken(token);
+          authSource = 'auth-header-with-base-url';
+          console.log(`🔐 POST: Using auth header with provided base URL: ${baseUrl}`);
+        }
       }
     }
     
+    // Return error if no valid authentication found (don't fall back to defaults)
     if (!client) {
-      // Fallback to environment credentials for development/demo
-      const defaultBaseUrl = process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
-      const defaultUsername = process.env.DHIS2_DEFAULT_USERNAME || 'admin';
-      const defaultPassword = process.env.DHIS2_DEFAULT_PASSWORD || 'district';
+      console.error('❌ POST: No valid authentication found');
       
-      if (defaultUsername && defaultPassword) {
-        client = new DHIS2Client(defaultBaseUrl);
-        const defaultToken = Buffer.from(`${defaultUsername}:${defaultPassword}`).toString('base64');
-        client.setToken(defaultToken);
-        
-        console.warn('Using default DHIS2 credentials - this should only be used for development/demo');
-      } else {
-        return NextResponse.json({ error: 'Not authenticated - no valid session, authorization header, or default credentials found' }, { status: 401 });
-      }
+      return NextResponse.json({ 
+        error: 'Authentication required', 
+        details: 'No valid DHIS2 credentials found. Please log in first.',
+        availableAuthMethods: [
+          'sessionId parameter with Authorization header',
+          'Valid session in cookies',
+          'Authorization header with x-dhis2-base-url header'
+        ]
+      }, { status: 401 });
     }
 
+    console.log(`✅ POST: Authenticated via: ${authSource}`);
     return await handlePostRequest(client, request);
   } catch (error: any) {
     console.error('Proxy POST request failed:', error);

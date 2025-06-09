@@ -117,7 +117,7 @@ export class SqlViewService {
         }
       };
 
-      // Add authentication header if available
+      // Add authentication header if available - this is required for sessionId approach
       if (this.authToken) {
         requestOptions.headers = {
           ...requestOptions.headers,
@@ -125,8 +125,20 @@ export class SqlViewService {
         };
       }
 
+      console.log('🔍 Making SQL View request to:', proxyUrl);
+      console.log('🔍 Request headers:', requestOptions.headers);
+
       const response = await fetch(proxyUrl, requestOptions);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ SQL View request failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          url: proxyUrl,
+          headers: requestOptions.headers
+        });
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
@@ -185,6 +197,7 @@ export class SqlViewService {
         headers = data.length > 0 ? Object.keys(data[0]) : [];
       }
     } catch (error: any) {
+      console.error('❌ SQL View execution failed:', error);
       throw new Error(`Failed to execute SQL view: ${error.message}`);
     }
 
@@ -424,7 +437,7 @@ export class SqlViewService {
       proxyUrl += `&sessionId=${encodeURIComponent(this.sessionId)}`;
     }
     
-    console.log('Fetching SQL view metadata from:', proxyUrl);
+    console.log('🔍 Fetching SQL view metadata from:', proxyUrl);
     
     // Prepare request options with authentication
     const requestOptions: RequestInit = {
@@ -434,7 +447,7 @@ export class SqlViewService {
       }
     };
 
-    // Add authentication header if available
+    // Add authentication header if available - this is required for sessionId approach
     if (this.authToken) {
       requestOptions.headers = {
         ...requestOptions.headers,
@@ -442,8 +455,18 @@ export class SqlViewService {
       };
     }
 
+    console.log('🔍 Request headers:', requestOptions.headers);
+
     const response = await fetch(proxyUrl, requestOptions);
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ SQL View metadata request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText,
+        url: proxyUrl,
+        headers: requestOptions.headers
+      });
       throw new Error(`Failed to get SQL view metadata: ${response.statusText}`);
     }
     return await response.json();

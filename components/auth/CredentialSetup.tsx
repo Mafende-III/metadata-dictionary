@@ -47,21 +47,22 @@ export default function CredentialSetup() {
       // Normalize the base URL
       const normalizedBaseUrl = normalizeBaseUrl(formData.baseUrl);
       
-      // Create auth token
-      const authToken = btoa(`${formData.username}:${formData.password}`);
-      
-      // Test the credentials - we'll test against /api/me endpoint
-      const testUrl = `${normalizedBaseUrl}/api/me.json`;
-      console.log('Testing connection to:', testUrl);
-      
-      const response = await fetch(testUrl, {
+      // Test the credentials using the API proxy route
+      const response = await fetch('/api/dhis2/test-connection', {
+        method: 'POST',
         headers: {
-          'Authorization': `Basic ${authToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          serverUrl: normalizedBaseUrl,
+          username: formData.username,
+          password: formData.password
+        })
       });
       
-      if (response.ok) {
+      const result = await response.json();
+      
+      if (response.ok && result.connected) {
         // Save credentials to the store
         setCredentials(normalizedBaseUrl, formData.username, formData.password);
         setSuccess(true);
@@ -69,7 +70,7 @@ export default function CredentialSetup() {
         // Reset error if there was one
         setError(null);
       } else {
-        setError(`Authentication failed: ${response.status} ${response.statusText}`);
+        setError(result.error || `Connection failed: ${response.status} ${response.statusText}`);
       }
     } catch (error) {
       console.error('Connection error:', error);

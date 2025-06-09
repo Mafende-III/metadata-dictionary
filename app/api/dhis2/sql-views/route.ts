@@ -1,13 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SqlViewService, SqlViewExecutionOptions } from '@/lib/services/sqlViewService';
+import { getSession } from '@/lib/services/sessionService';
+import { SessionService } from '@/lib/supabase';
+
+async function getAuthenticatedService(request: NextRequest): Promise<SqlViewService> {
+  // Check for sessionId parameter first
+  const { searchParams } = new URL(request.url);
+  const sessionId = searchParams.get('sessionId');
+  
+  if (sessionId) {
+    try {
+      const session = await SessionService.getSession(sessionId);
+      if (session) {
+        // Check if auth header is provided for the token
+        const authHeader = request.headers.get('authorization');
+        if (authHeader && authHeader.startsWith('Basic ')) {
+          const token = authHeader.replace('Basic ', '');
+          return new SqlViewService(session.serverUrl, token, sessionId);
+        }
+      }
+    } catch (error) {
+      console.error('Error retrieving session:', error);
+    }
+  }
+  
+  // Try to get session from cookies
+  try {
+    const session = await getSession();
+    if (session && session.token && session.serverUrl) {
+      return new SqlViewService(session.serverUrl, session.token, session.id);
+    }
+  } catch (error) {
+    console.error('Error getting session from cookies:', error);
+  }
+  
+  // Check for Authorization header with credentials
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Basic ')) {
+    const token = authHeader.replace('Basic ', '');
+    // Use environment variable for base URL or require it in headers
+    const baseUrl = request.headers.get('x-dhis2-base-url') || 
+                   process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 
+                   'https://play.dhis2.org/40/api';
+    return new SqlViewService(baseUrl, token);
+  }
+  
+  throw new Error('No valid authentication found. Please ensure you are logged in.');
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { action, sqlViewId, options, variables, name, cacheId } = body;
     
-    // Create service instance - TODO: Add proper auth when available
-    const service = new SqlViewService();
+    // Create authenticated service instance
+    const service = await getAuthenticatedService(request);
 
     switch (action) {
       case 'execute':
@@ -50,7 +97,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'SQL View ID required' }, { status: 400 });
     }
 
-    const service = new SqlViewService();
+    // Create authenticated service instance
+    const service = await getAuthenticatedService(request);
     const metadata = await service.getSqlViewMetadata(sqlViewId);
     
     return NextResponse.json(metadata);

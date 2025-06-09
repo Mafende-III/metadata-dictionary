@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSqlView } from '../../hooks/useSqlView';
 import { useAdminSqlViewStore } from '../../lib/stores/adminSqlViewStore';
 import { useSqlViewStore } from '../../lib/stores/sqlViewStore';
+import { useDHIS2Auth } from '../../hooks/useDHIS2Auth';
 import SqlViewDataFilter from './SqlViewDataFilter';
 import SqlViewParameterInput from './SqlViewParameterInput';
 import SqlViewDataTable from './SqlViewDataTable';
@@ -28,6 +29,7 @@ export default function SqlViewDataDisplay({
 
   const { templates, getTemplatesByCategory } = useAdminSqlViewStore();
   const { getViewUid, isViewConfigured } = useSqlViewStore();
+  const { session, isAuthenticated } = useDHIS2Auth();
 
   // Get available templates for the category
   const availableTemplates = getTemplatesByCategory(category);
@@ -60,19 +62,33 @@ export default function SqlViewDataDisplay({
 
   // Use effect to fetch data when templateId changes
   useEffect(() => {
-    if (selectedTemplateId && actualSqlViewUid) {
+    if (selectedTemplateId && actualSqlViewUid && isAuthenticated && session) {
       fetchSqlViewMetadata(actualSqlViewUid);
       fetchSqlViewData(selectedTemplateId);
     }
-  }, [selectedTemplateId, actualSqlViewUid]);
+  }, [selectedTemplateId, actualSqlViewUid, isAuthenticated, session]);
 
   // Fetch SQL view metadata to extract variables
   const fetchSqlViewMetadata = async (sqlViewUid: string) => {
+    if (!isAuthenticated || !session) {
+      console.error('Not authenticated for metadata fetch');
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/dhis2/sql-views?id=${sqlViewUid}`);
+      const response = await fetch(`/api/dhis2/sql-views?id=${sqlViewUid}&sessionId=${session.id}`, {
+        headers: {
+          'Authorization': `Basic ${session.token}`,
+          'x-dhis2-base-url': session.serverUrl,
+          'Content-Type': 'application/json',
+        }
+      });
+      
       if (response.ok) {
         const metadata = await response.json();
         setSqlViewMetadata(metadata);
+      } else {
+        console.error('Failed to fetch SQL view metadata:', response.status);
       }
     } catch (error) {
       console.error('Error fetching SQL view metadata:', error);
@@ -140,6 +156,21 @@ export default function SqlViewDataDisplay({
     });
     return transformedRow;
   });
+
+  // Check if user is authenticated
+  if (!isAuthenticated || !session) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
+        <h3 className="font-semibold text-red-800 mb-2">Authentication Required</h3>
+        <p className="text-red-700 mb-3">
+          Please log in to access SQL view data.
+        </p>
+        <a href="/" className="text-blue-600 hover:underline">
+          Go to Login →
+        </a>
+      </div>
+    );
+  }
 
   // If there are no templates available, show setup prompt
   if (availableTemplates.length === 0) {

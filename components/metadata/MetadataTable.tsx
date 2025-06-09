@@ -50,6 +50,63 @@ export const MetadataTable = <T extends BaseMetadata>({
     setSortConfig({ key, direction });
     onSortChange(key, direction);
   };
+
+  // Render mobile card view
+  const renderMobileCardView = () => {
+    if (data.length === 0) return null;
+
+    return (
+      <div className="space-y-4">
+        {data.map(({ metadata, quality }) => (
+          <div key={metadata.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-medium text-gray-900 truncate">
+                  {metadata.displayName || metadata.name}
+                </h3>
+                {metadata.code && (
+                  <p className="text-xs text-gray-500 font-mono mt-1">
+                    {metadata.code}
+                  </p>
+                )}
+              </div>
+              <QualityBadge score={quality.qualityScore} size="sm" />
+            </div>
+            
+            <div className="text-sm text-gray-500 mb-3">
+              {metadata.description
+                ? truncateText(metadata.description, 80)
+                : (
+                  <span className="text-gray-400 italic">
+                    No description
+                  </span>
+                )
+              }
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-3 text-xs">
+              <div>
+                <span className="font-medium text-gray-500">Created:</span>
+                <div className="text-gray-700">{formatDate(metadata.created)}</div>
+              </div>
+              <div>
+                <span className="font-medium text-gray-500">Updated:</span>
+                <div className="text-gray-700">{formatDate(metadata.lastUpdated)}</div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <Link href={`${basePath}/${metadata.id}`}>
+                <Button variant="outline" size="sm">
+                  View
+                </Button>
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
   
   // Render pagination
   const renderPagination = () => {
@@ -192,83 +249,90 @@ export const MetadataTable = <T extends BaseMetadata>({
       </div>
     );
   }
-  
+
   return (
     <div className="flex flex-col">
-      <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-        <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+      
+      {/* Mobile view (md screens and smaller) */}
+      <div className="block lg:hidden">
+        {!isLoading && renderMobileCardView()}
+      </div>
+      
+      {/* Desktop table view (lg screens and larger) */}
+      <div className="hidden lg:block">
+        {!isLoading && (
           <div className="overflow-hidden border-b border-gray-200 shadow sm:rounded-lg">
-            <Table hover>
-              <Table.Head>
-                <Table.Row>
-                  <Table.HeaderCell
-                    sortable
-                    sorted={sortConfig.key === 'displayName' ? sortConfig.direction : false}
-                    onSort={() => handleSort('displayName')}
-                  >
-                    Name
-                  </Table.HeaderCell>
-                  
-                  <Table.HeaderCell>
-                    Description
-                  </Table.HeaderCell>
-                  
-                  <Table.HeaderCell
-                    sortable
-                    sorted={sortConfig.key === 'created' ? sortConfig.direction : false}
-                    onSort={() => handleSort('created')}
-                  >
-                    Created
-                  </Table.HeaderCell>
-                  
-                  <Table.HeaderCell
-                    sortable
-                    sorted={sortConfig.key === 'lastUpdated' ? sortConfig.direction : false}
-                    onSort={() => handleSort('lastUpdated')}
-                  >
-                    Last Updated
-                  </Table.HeaderCell>
-                  
-                  <Table.HeaderCell>
-                    Quality
-                  </Table.HeaderCell>
-                  
-                  <Table.HeaderCell>
-                    <span className="sr-only">Actions</span>
-                  </Table.HeaderCell>
-                </Table.Row>
-              </Table.Head>
-              
-              <Table.Body>
-                {isLoading ? (
+            <div className="overflow-x-auto">
+              <Table hover>
+                <Table.Head>
                   <Table.Row>
-                    <Table.Cell colSpan={6} className="text-center py-12">
-                      <div className="flex justify-center">
-                        <svg className="animate-spin h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      </div>
-                    </Table.Cell>
+                    <Table.HeaderCell
+                      sortable
+                      sorted={sortConfig.key === 'displayName' ? sortConfig.direction : false}
+                      onSort={() => handleSort('displayName')}
+                      className="min-w-0 w-1/4"
+                    >
+                      Name
+                    </Table.HeaderCell>
+                    
+                    <Table.HeaderCell className="min-w-0 w-1/3">
+                      Description
+                    </Table.HeaderCell>
+                    
+                    <Table.HeaderCell
+                      sortable
+                      sorted={sortConfig.key === 'created' ? sortConfig.direction : false}
+                      onSort={() => handleSort('created')}
+                      className="w-32 whitespace-nowrap"
+                    >
+                      Created
+                    </Table.HeaderCell>
+                    
+                    <Table.HeaderCell
+                      sortable
+                      sorted={sortConfig.key === 'lastUpdated' ? sortConfig.direction : false}
+                      onSort={() => handleSort('lastUpdated')}
+                      className="w-32 whitespace-nowrap"
+                    >
+                      Last Updated
+                    </Table.HeaderCell>
+                    
+                    <Table.HeaderCell className="w-24 text-center">
+                      Quality
+                    </Table.HeaderCell>
+                    
+                    <Table.HeaderCell className="w-20 text-center">
+                      <span className="sr-only">Actions</span>
+                    </Table.HeaderCell>
                   </Table.Row>
-                ) : (
-                  data.map(({ metadata, quality }) => (
+                </Table.Head>
+                
+                <Table.Body>
+                  {data.map(({ metadata, quality }) => (
                     <Table.Row key={metadata.id}>
-                      <Table.Cell>
-                        <div className="text-sm font-medium text-gray-900">
-                          {metadata.displayName || metadata.name}
-                        </div>
-                        {metadata.code && (
-                          <div className="text-xs text-gray-500 font-mono mt-1">
-                            {metadata.code}
+                      <Table.Cell className="min-w-0">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {metadata.displayName || metadata.name}
                           </div>
-                        )}
+                          {metadata.code && (
+                            <div className="text-xs text-gray-500 font-mono mt-1 truncate">
+                              {metadata.code}
+                            </div>
+                          )}
+                        </div>
                       </Table.Cell>
                       
-                      <Table.Cell>
-                        <div className="text-sm text-gray-500">
+                      <Table.Cell className="min-w-0">
+                        <div className="text-sm text-gray-500 max-w-xs truncate">
                           {metadata.description
-                            ? truncateText(metadata.description, 100)
+                            ? metadata.description
                             : (
                               <span className="text-gray-400 italic">
                                 No description
@@ -278,23 +342,23 @@ export const MetadataTable = <T extends BaseMetadata>({
                         </div>
                       </Table.Cell>
                       
-                      <Table.Cell>
+                      <Table.Cell className="whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           {formatDate(metadata.created)}
                         </div>
                       </Table.Cell>
                       
-                      <Table.Cell>
+                      <Table.Cell className="whitespace-nowrap">
                         <div className="text-sm text-gray-500">
                           {formatDate(metadata.lastUpdated)}
                         </div>
                       </Table.Cell>
                       
-                      <Table.Cell>
+                      <Table.Cell className="text-center">
                         <QualityBadge score={quality.qualityScore} size="sm" />
                       </Table.Cell>
                       
-                      <Table.Cell>
+                      <Table.Cell className="text-center">
                         <Link href={`${basePath}/${metadata.id}`}>
                           <Button variant="outline" size="sm">
                             View
@@ -302,15 +366,15 @@ export const MetadataTable = <T extends BaseMetadata>({
                         </Link>
                       </Table.Cell>
                     </Table.Row>
-                  ))
-                )}
-              </Table.Body>
-            </Table>
+                  ))}
+                </Table.Body>
+              </Table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
-      {renderPagination()}
+      {!isLoading && renderPagination()}
     </div>
   );
 }; 

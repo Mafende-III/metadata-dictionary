@@ -71,7 +71,25 @@ export const useMetadata = <T extends BaseMetadata>(
         sessionId: session.id,
       };
       
-      const response = await axios.get(endpoint, { params });
+      // Set up proper authentication headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add Authorization header if session has token
+      if (session.token) {
+        headers['Authorization'] = `Basic ${session.token}`;
+      }
+      
+      // Add DHIS2 base URL header
+      if (session.serverUrl) {
+        headers['x-dhis2-base-url'] = session.serverUrl;
+      }
+      
+      const response = await axios.get(endpoint, { 
+        params,
+        headers
+      });
       
       // Process response
       const { items, pager } = response.data;
@@ -107,7 +125,25 @@ export const useMetadata = <T extends BaseMetadata>(
       const endpoint = `${getEndpoint()}/${id}`;
       const params = { sessionId: session.id };
       
-      const response = await axios.get(endpoint, { params });
+      // Set up proper authentication headers
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add Authorization header if session has token
+      if (session.token) {
+        headers['Authorization'] = `Basic ${session.token}`;
+      }
+      
+      // Add DHIS2 base URL header
+      if (session.serverUrl) {
+        headers['x-dhis2-base-url'] = session.serverUrl;
+      }
+      
+      const response = await axios.get(endpoint, { 
+        params,
+        headers
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching metadata by ID:', error);
@@ -139,11 +175,20 @@ export const useMetadata = <T extends BaseMetadata>(
     }
     
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      // Add Authorization header if session has token
+      if (session.token) {
+        headers['Authorization'] = `Basic ${session.token}`;
+      }
+      
       const response = await axios.post(API_ROUTES.METADATA.QUALITY, {
         metadata,
         metadataType,
         sessionId: session.id,
-      });
+      }, { headers });
       
       return response.data;
     } catch (error) {

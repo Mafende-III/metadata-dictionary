@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, AlertCircle, CheckCircle, Copy, Eye, EyeOff } from 'lucide-react';
+import { useAuthStore } from '@/lib/stores/authStore';
 
 interface SqlViewDebugProps {
   sqlViewId: string;
@@ -14,26 +15,42 @@ export default function SqlViewDebugComponent({ sqlViewId, templateId }: SqlView
   const [showRaw, setShowRaw] = useState(false);
   const [executionTime, setExecutionTime] = useState<number>(0);
 
+  // Get authentication from store
+  const { getAuthToken, getDhisBaseUrl, isAuthenticated } = useAuthStore();
+
   const executeSqlView = async () => {
+    if (!isAuthenticated) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     const startTime = Date.now();
 
     try {
-      // Direct API call to see raw response
+      // Direct API call to see raw response with authentication
+      const authToken = getAuthToken();
+      const baseUrl = getDhisBaseUrl();
+
       const response = await fetch(`/api/dhis2/proxy?path=/sqlViews/${sqlViewId}/data.json`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          'Authorization': `Basic ${authToken}`,
+          'x-dhis2-base-url': baseUrl,
         }
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
       setRawResponse(data);
+      
+      console.log('Raw SQL View Response:', data);
       
       // Process different response formats
       let processed: any[] = [];

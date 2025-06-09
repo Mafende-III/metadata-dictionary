@@ -19,6 +19,7 @@ export default function DataElementsPage() {
   const { session } = useDHIS2Auth();
   const [groupOptions, setGroupOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [activeTab, setActiveTab] = useState<'table' | 'sqlview'>('table');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Initialize filters from URL search params
   const initialFilters = {
@@ -132,83 +133,125 @@ export default function DataElementsPage() {
   };
   
   return (
-    <div>
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-2xl font-semibold text-gray-900">Data Elements</h1>
-        
-        <div className="flex space-x-2">
-          <ExportButton
-            onExport={handleExport}
-            disabled={isLoading || metadata.length === 0}
-          />
-        </div>
-      </div>
-      
-      {/* Tab Navigation */}
-      <div className="border-b mb-6">
-        <nav className="flex space-x-8">
-          <button
-            onClick={() => setActiveTab('table')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'table'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Standard View
-          </button>
-          <button
-            onClick={() => setActiveTab('sqlview')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'sqlview'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            SQL View Analysis
-          </button>
-        </nav>
-      </div>
-
-      {/* SQL View Data Display (shown only when that tab is active) */}
-      {activeTab === 'sqlview' && (
-        <SqlViewDataDisplay category="data_elements" />
-      )}
-      
-      {/* Only show the regular table view when that tab is active */}
-      {activeTab === 'table' && (
-        <div className="flex flex-col md:flex-row md:space-x-6">
-          {/* Filters sidebar */}
-          <div className="w-full md:w-64 flex-shrink-0 mb-6 md:mb-0">
-            <MetadataFilters
-              filters={filters}
-              onFilterChange={handleFilterChange}
-              onReset={resetFilters}
-              groupOptions={groupOptions}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <h1 className="text-2xl font-semibold text-gray-900">Data Elements</h1>
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Mobile filter toggle */}
+            <div className="sm:hidden">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="w-full bg-white border border-gray-300 rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+            </div>
+            
+            <ExportButton
+              onExport={handleExport}
+              disabled={isLoading || metadata.length === 0}
             />
           </div>
-          
-          {/* Main content */}
-          <div className="flex-1">
-            {error ? (
-              <div className="bg-red-50 p-4 rounded-md">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            ) : (
-              <MetadataTable
-                data={metadata}
-                basePath="/data-elements"
-                isLoading={isLoading}
-                pagination={pagination}
-                filters={filters}
-                onPageChange={handlePageChange}
-                onPageSizeChange={handlePageSizeChange}
-                onSortChange={handleSortChange}
-              />
-            )}
-          </div>
         </div>
-      )}
+        
+        {/* Tab Navigation */}
+        <div className="border-b mb-6 bg-white rounded-t-lg">
+          <nav className="flex space-x-8 px-6 pt-4">
+            <button
+              onClick={() => setActiveTab('table')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === 'table'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Standard View
+            </button>
+            <button
+              onClick={() => setActiveTab('sqlview')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                activeTab === 'sqlview'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              SQL View Analysis
+            </button>
+          </nav>
+        </div>
+
+        {/* SQL View Data Display (shown only when that tab is active) */}
+        {activeTab === 'sqlview' && (
+          <div className="bg-white rounded-lg shadow">
+            <SqlViewDataDisplay category="data_elements" />
+          </div>
+        )}
+        
+        {/* Only show the regular table view when that tab is active */}
+        {activeTab === 'table' && (
+          <div className="flex flex-col lg:flex-row lg:gap-6">
+            {/* Filters sidebar - desktop */}
+            <div className="hidden lg:block w-64 flex-shrink-0">
+              <div className="sticky top-4">
+                <MetadataFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onReset={resetFilters}
+                  groupOptions={groupOptions}
+                />
+              </div>
+            </div>
+            
+            {/* Filters sidebar - mobile (collapsible) */}
+            {showFilters && (
+              <div className="lg:hidden mb-6">
+                <MetadataFilters
+                  filters={filters}
+                  onFilterChange={handleFilterChange}
+                  onReset={resetFilters}
+                  groupOptions={groupOptions}
+                />
+              </div>
+            )}
+            
+            {/* Main content */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                {error ? (
+                  <div className="p-6">
+                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-red-800">Error loading data</h3>
+                          <p className="text-sm text-red-700 mt-1">{error}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <MetadataTable
+                    data={metadata}
+                    basePath="/data-elements"
+                    isLoading={isLoading}
+                    pagination={pagination}
+                    filters={filters}
+                    onPageChange={handlePageChange}
+                    onPageSizeChange={handlePageSizeChange}
+                    onSortChange={handleSortChange}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 

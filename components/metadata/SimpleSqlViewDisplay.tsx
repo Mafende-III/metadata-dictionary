@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Download, Search, Filter, AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuthStore } from '@/lib/stores/authStore';
 
 interface SimpleSqlViewDisplayProps {
   templateId: string;
@@ -16,18 +17,33 @@ export default function SimpleSqlViewDisplay({ templateId, sqlViewId }: SimpleSq
   const [error, setError] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<any>(null);
 
+  // Get authentication from store
+  const { getAuthToken, getDhisBaseUrl, isAuthenticated } = useAuthStore();
+
   const fetchSqlViewData = async () => {
+    if (!isAuthenticated) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     const startTime = Date.now();
 
     try {
-      // Add cache-busting parameter and headers
+      // Add cache-busting parameter and headers with authentication
       const cacheBuster = Date.now();
+      const authToken = getAuthToken();
+      const baseUrl = getDhisBaseUrl();
+      
+      console.log(`🔐 Making authenticated request with token for ${baseUrl}`);
+      
       const response = await fetch(`/api/dhis2/proxy?path=${encodeURIComponent(`/sqlViews/${sqlViewId}/data.json`)}&_cb=${cacheBuster}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
+          'Authorization': `Basic ${authToken}`,
+          'x-dhis2-base-url': baseUrl,
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
           'Expires': '0'
@@ -35,7 +51,8 @@ export default function SimpleSqlViewDisplay({ templateId, sqlViewId }: SimpleSq
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`HTTP ${response.status}: ${errorData.error || response.statusText}`);
       }
 
       const result = await response.json();
@@ -150,7 +167,7 @@ export default function SimpleSqlViewDisplay({ templateId, sqlViewId }: SimpleSq
     if (sqlViewId) {
       fetchSqlViewData();
     }
-  }, [sqlViewId]);
+  }, [sqlViewId, isAuthenticated]);
 
   useEffect(() => {
     // Filter data based on search term
