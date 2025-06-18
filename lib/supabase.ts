@@ -4,11 +4,33 @@ import { BaseMetadata, QualityAssessment } from '../types/metadata';
 import { Session } from '../types/auth';
 import config from './config';
 
-// Initialize Supabase client
-const supabaseUrl = config.supabase.url;
-const supabaseAnonKey = config.supabase.anonKey;
+// Initialize Supabase client with null checks
+let supabase: any = null;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function initializeSupabase() {
+  if (config.supabase.url && config.supabase.anonKey) {
+    try {
+      supabase = createClient(config.supabase.url, config.supabase.anonKey);
+      console.log('✅ Supabase initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize Supabase:', error);
+      supabase = null;
+    }
+  } else {
+    console.warn('⚠️ Supabase not initialized - missing environment variables');
+    supabase = null;
+  }
+}
+
+// Initialize on import
+initializeSupabase();
+
+// Helper function to check if Supabase is available
+function isSupabaseAvailable(): boolean {
+  return supabase !== null;
+}
+
+export { supabase };
 
 // Cache service
 export class CacheService {
@@ -20,6 +42,11 @@ export class CacheService {
     qualityAssessment: QualityAssessment,
     ttlHours = 24
   ): Promise<string> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, skipping cache metadata');
+      return `local_cache_${Date.now()}`;
+    }
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + ttlHours * 60 * 60 * 1000);
     
@@ -46,6 +73,10 @@ export class CacheService {
     metadataType: string,
     metadataId: string
   ): Promise<CacheResult<T>> {
+    if (!isSupabaseAvailable()) {
+      return { found: false, expired: false, item: null };
+    }
+
     const { data, error } = await supabase
       .from('metadata_cache')
       .select('*')
@@ -111,6 +142,11 @@ export class CacheService {
   
   // Invalidate cache
   static async invalidateCache(sessionId: string, pattern?: string): Promise<void> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, skipping cache invalidation');
+      return;
+    }
+
     let query = supabase
       .from('metadata_cache')
       .delete();
@@ -133,6 +169,11 @@ export class CacheService {
     metadataType: string,
     metadataId: string
   ): Promise<void> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, skipping usage tracking');
+      return;
+    }
+
     const now = new Date().toISOString();
     
     // First check if exists
@@ -172,6 +213,11 @@ export class CacheService {
 export class SessionService {
   // Store session
   static async storeSession(session: Session): Promise<void> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, skipping session storage');
+      return;
+    }
+
     const { error } = await supabase
       .from('dhis2_sessions')
       .upsert({
@@ -189,6 +235,11 @@ export class SessionService {
   
   // Get session
   static async getSession(sessionId: string): Promise<Session | null> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, cannot retrieve session');
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('dhis2_sessions')
       .select('*')
@@ -210,6 +261,11 @@ export class SessionService {
   
   // Update session last used
   static async updateSessionUsage(sessionId: string): Promise<void> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, skipping session usage update');
+      return;
+    }
+
     await supabase
       .from('dhis2_sessions')
       .update({ last_used: new Date().toISOString() })
@@ -218,6 +274,11 @@ export class SessionService {
   
   // Delete session
   static async deleteSession(sessionId: string): Promise<void> {
+    if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available, skipping session deletion');
+      return;
+    }
+
     await supabase
       .from('dhis2_sessions')
       .delete()

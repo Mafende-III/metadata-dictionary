@@ -58,7 +58,7 @@ export default function DataElementDetailPage() {
         // Fetch data element details
         const response = await fetch(`/api/dhis2/proxy?endpoint=dataElements/${params.id}`, {
           headers: {
-            'Authorization': `Basic ${btoa(`${session.username}:${session.password}`)}`,
+            'Authorization': `Basic ${session.token}`,
             'Content-Type': 'application/json',
           },
         });

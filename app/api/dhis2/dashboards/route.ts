@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     
     if (id) {
       // Fetch single dashboard
-      const dashboard = await dhis2Client.getDashboard(id);
+      const dashboard = await dhis2Client.getMetadataById('DASHBOARD', id);
       
       if (!dashboard) {
         return NextResponse.json(
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
       
       // Process and assess quality for each dashboard
       const metadataWithQuality = await Promise.all(
-        response.dashboards.map(async (dashboard) => {
+        response.dashboards.map(async (dashboard: Dashboard) => {
           // Check cache first
           const cacheResult = await CacheService.getCachedMetadata<Dashboard>(
             sessionId || 'cookie-session',

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAdminSqlViewStore } from '../../lib/stores/adminSqlViewStore';
-import { useSqlViewStore } from '../../lib/stores/sqlViewStore';
-import { useAuthStore } from '../../lib/stores/authStore';
-import { SqlViewService } from '../../lib/services/sqlViewService';
-import { SqlViewTemplate } from '../../types/sqlView';
+import { useAdminSqlViewStore } from '@/lib/stores/adminSqlViewStore';
+import { useSqlViewStore } from '@/lib/stores/sqlViewStore';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { SqlViewService } from '@/lib/services/sqlViewService';
+import { SqlViewTemplate } from '@/types/sqlView';
 
 export default function SqlViewConfiguration() {
   const { templates } = useAdminSqlViewStore();
