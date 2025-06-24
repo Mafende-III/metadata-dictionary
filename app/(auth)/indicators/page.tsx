@@ -6,25 +6,22 @@ import { MetadataTable, MetadataFilters } from '@/components/features/metadata';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { useMetadata } from '../../../hooks/useMetadata';
 import { useFilters } from '../../../hooks/useFilters';
-import { DataElement } from '../../../types/metadata';
 import { ExportButton } from '@/components/shared/ExportButton';
 import { ExportFormat, ExportService } from '../../../lib/export';
 import { METADATA_TYPES } from '../../../lib/constants';
 import { SqlViewDataDisplay } from '@/components/features/sql-views';
 import EnhancedSqlViewTable from '@/src/components/features/sql-views/EnhancedSqlViewTable';
-import SqlViewDebugger from '@/src/components/features/sql-views/SqlViewDebugger';
 import SavedMetadataManager from '@/components/metadata/SavedMetadataManager';
 
-export default function DataElementsPage() {
+export default function IndicatorsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, username, dhisBaseUrl, authToken } = useAuthStore();
   const [groupOptions, setGroupOptions] = useState<Array<{ id: string; name: string }>>([]);
   const [activeTab, setActiveTab] = useState<'standard' | 'debug' | 'enhanced' | 'saved'>('standard');
   const [showFilters, setShowFilters] = useState(false);
-  const [savedMetadata, setSavedMetadata] = useState<any[]>([]);
-  const [testSqlViewId, setTestSqlViewId] = useState('w1JM5arbLNJ'); // Default data elements SQL view
-  
+  const [testSqlViewId, setTestSqlViewId] = useState('ReUHfIn0pTQ'); // Default indicators SQL view
+
   // Initialize filters from URL search params
   const initialFilters = {
     search: searchParams.get('search') || '',
@@ -36,10 +33,10 @@ export default function DataElementsPage() {
     sortBy: searchParams.get('sortBy') || 'displayName',
     sortDirection: (searchParams.get('sortDir') as 'asc' | 'desc') || 'asc',
   };
-  
+
   // Initialize filter hooks
   const { filters, setFilters, resetFilters, parseFiltersFromUrl } = useFilters(initialFilters);
-  
+
   // Create session object from auth store data
   const session = isAuthenticated ? {
     id: 'local-session',
@@ -52,7 +49,7 @@ export default function DataElementsPage() {
     lastUsed: new Date().toISOString()
   } : null;
 
-  // Use metadata hook to fetch data elements
+  // Use metadata hook to fetch indicators
   const {
     metadata,
     isLoading,
@@ -60,8 +57,8 @@ export default function DataElementsPage() {
     pagination,
     updateFilters,
     fetchMetadata,
-  } = useMetadata<DataElement>(METADATA_TYPES.DATA_ELEMENT, session, filters);
-  
+  } = useMetadata(METADATA_TYPES.INDICATOR, session, filters);
+
   // Update filters when URL changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -69,20 +66,18 @@ export default function DataElementsPage() {
       parseFiltersFromUrl(url);
     }
   }, [searchParams, parseFiltersFromUrl]);
-  
+
   // Fetch group options for filtering
   useEffect(() => {
     const fetchGroups = async () => {
       if (!session) return;
       
       try {
-        // This would typically come from an API endpoint
-        // For now, hardcode some example groups
         setGroupOptions([
-          { id: 'group1', name: 'Core Indicators' },
-          { id: 'group2', name: 'Demographic Data' },
-          { id: 'group3', name: 'Health Services' },
-          { id: 'group4', name: 'Survey Data' },
+          { id: 'group1', name: 'Health Indicators' },
+          { id: 'group2', name: 'Demographic Indicators' },
+          { id: 'group3', name: 'Service Coverage' },
+          { id: 'group4', name: 'Quality Metrics' },
         ]);
       } catch (error) {
         console.error('Error fetching groups:', error);
@@ -91,27 +86,27 @@ export default function DataElementsPage() {
     
     fetchGroups();
   }, [session]);
-  
+
   // Handle page change
   const handlePageChange = (page: number) => {
     updateFilters({ page });
   };
-  
+
   // Handle page size change
   const handlePageSizeChange = (pageSize: number) => {
     updateFilters({ pageSize });
   };
-  
+
   // Handle sort change
   const handleSortChange = (sortBy: string, sortDirection: 'asc' | 'desc') => {
     updateFilters({ sortBy, sortDirection });
   };
-  
+
   // Handle filter change
   const handleFilterChange = (newFilters: any) => {
     updateFilters(newFilters);
   };
-  
+
   // Handle export
   const handleExport = (format: ExportFormat, includeQuality: boolean) => {
     if (!metadata || metadata.length === 0) return;
@@ -125,21 +120,21 @@ export default function DataElementsPage() {
       {
         format,
         includeQuality,
-        filename: `data_elements_export_${new Date().toISOString().split('T')[0]}`
+        filename: `indicators_export_${new Date().toISOString().split('T')[0]}`
       }
     );
     
     // Create a downloadable link
     const url = ExportService.createDownloadLink(
       exportContent,
-      `data_elements_export_${new Date().toISOString().split('T')[0]}`,
+      `indicators_export_${new Date().toISOString().split('T')[0]}`,
       format
     );
     
     // Create a temporary anchor and trigger download
     const a = document.createElement('a');
     a.href = url;
-    a.download = `data_elements_export_${new Date().toISOString().split('T')[0]}.${format}`;
+    a.download = `indicators_export_${new Date().toISOString().split('T')[0]}.${format}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -147,12 +142,12 @@ export default function DataElementsPage() {
     // Clean up the URL object
     URL.revokeObjectURL(url);
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Data Elements</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Indicators</h1>
           
           <div className="flex flex-col sm:flex-row gap-2">
             {/* Mobile filter toggle */}
@@ -183,7 +178,7 @@ export default function DataElementsPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              📋 Standard View
+              📊 Standard View
             </button>
             <button
               onClick={() => setActiveTab('debug')}
@@ -221,7 +216,6 @@ export default function DataElementsPage() {
         {/* Tab Content */}
         {activeTab === 'debug' && (
           <div className="space-y-6">
-            {/* SQL Debug & Manual Generation Tab */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-3">
                 🔍 SQL View Debug & Manual Table Generation
@@ -234,14 +228,13 @@ export default function DataElementsPage() {
                   <strong>🎯 Use Case:</strong> When metadata shows "Rows: 0" but JSON data is returned, use "Generate Table" to create interactive tables.
                 </p>
               </div>
-              <SqlViewDataDisplay category="data_elements" />
+              <SqlViewDataDisplay category="indicators" />
             </div>
           </div>
         )}
 
         {activeTab === 'enhanced' && (
           <div className="space-y-6">
-            {/* Enhanced Multi-Page Analysis Tab */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-3">
                 🚀 Enhanced Multi-Page SQL View Analysis
@@ -261,17 +254,17 @@ export default function DataElementsPage() {
                 <div className="flex space-x-4 items-end">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-blue-700 mb-2">
-                      Data Elements SQL View ID
+                      Indicators SQL View ID
                     </label>
                     <input
                       type="text"
                       value={testSqlViewId}
                       onChange={(e) => setTestSqlViewId(e.target.value)}
                       className="w-full border border-blue-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter SQL View UID for data elements"
+                      placeholder="Enter SQL View UID for indicators"
                     />
                     <p className="text-xs text-blue-600 mt-1">
-                      Default: w1JM5arbLNJ (DHIS2 demo data elements view)
+                      Default: ReUHfIn0pTQ (DHIS2 demo indicators view)
                     </p>
                   </div>
                   <button
@@ -287,7 +280,7 @@ export default function DataElementsPage() {
               <div className="border border-gray-200 rounded-lg">
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                   <h3 className="font-medium text-gray-900">
-                    🚀 Enhanced Multi-Page Data Elements Analysis
+                    🚀 Enhanced Multi-Page Indicators Analysis
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
                     Advanced SQL view analysis with multi-page fetching, interactive filtering, and export capabilities
@@ -308,7 +301,6 @@ export default function DataElementsPage() {
 
         {activeTab === 'saved' && (
           <div className="space-y-6">
-            {/* Saved Metadata Dictionaries Tab */}
             <div className="bg-white rounded-lg shadow p-6">
               <div className="bg-orange-50 border border-orange-200 rounded p-3 mb-6">
                 <p className="text-orange-800 text-sm mb-2">
@@ -320,7 +312,7 @@ export default function DataElementsPage() {
               </div>
               
               <SavedMetadataManager 
-                category="data_elements"
+                category="indicators"
                 onLoad={(entry) => {
                   console.log('Loading saved entry:', entry);
                   alert(`Loading: ${entry.name}\n\nThis would restore the saved analysis with ${entry.metadata.rowCount} rows.`);
@@ -379,7 +371,7 @@ export default function DataElementsPage() {
                 ) : (
                   <MetadataTable
                     data={metadata}
-                    basePath="/data-elements"
+                    basePath="/indicators"
                     isLoading={isLoading}
                     pagination={pagination}
                     filters={filters}
@@ -395,4 +387,4 @@ export default function DataElementsPage() {
       </div>
     </div>
   );
-} 
+}

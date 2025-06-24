@@ -40,24 +40,55 @@ export const useDHIS2Auth = () => {
               session,
               error: null,
             });
+            return;
           } else {
             // Session expired, clear it
             localStorage.removeItem(SESSION_STORAGE_KEY);
-            setState({
-              isLoading: false,
-              isAuthenticated: false,
-              session: null,
-              error: 'Session expired. Please log in again.',
-            });
           }
-        } else {
-          setState({
-            isLoading: false,
-            isAuthenticated: false,
-            session: null,
-            error: null,
-          });
         }
+        
+        // If no valid session, check for auth store credentials as fallback
+        const authStoreData = localStorage.getItem('dhis2-auth');
+        if (authStoreData) {
+          try {
+            const authData = JSON.parse(authStoreData);
+            if (authData.state?.isAuthenticated && authData.state?.dhisBaseUrl && authData.state?.authToken) {
+              // Create a session from auth store data
+              const session: Session = {
+                id: generateUUID(),
+                userId: authData.state.username || 'admin',
+                username: authData.state.username || 'admin',
+                displayName: authData.state.username || 'Admin User',
+                serverUrl: authData.state.dhisBaseUrl,
+                token: authData.state.authToken,
+                authorities: [],
+                createdAt: new Date().toISOString(),
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+                lastUsed: new Date().toISOString()
+              };
+              
+              // Store as session and authenticate
+              localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+              setState({
+                isLoading: false,
+                isAuthenticated: true,
+                session,
+                error: null,
+              });
+              return;
+            }
+          } catch (authStoreError) {
+            console.error('Error parsing auth store data:', authStoreError);
+          }
+        }
+        
+        // No valid authentication found
+        setState({
+          isLoading: false,
+          isAuthenticated: false,
+          session: null,
+          error: null,
+        });
       } catch (error) {
         console.error('Error loading session:', error);
         setState({

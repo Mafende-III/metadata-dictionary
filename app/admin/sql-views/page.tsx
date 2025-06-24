@@ -1,6 +1,6 @@
 'use client';
 
-import SqlViewTemplateManager from '@/components/admin/SqlViewTemplateManager';
+import { SqlViewTemplateManager } from '@/components/features/sql-views';
 
 export default function AdminSqlViewsPage() {
   return (

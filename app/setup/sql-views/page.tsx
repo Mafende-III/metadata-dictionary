@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import { useSqlViewStore } from '../../../lib/stores/sqlViewStore';
 import { useAdminSqlViewStore } from '../../../lib/stores/adminSqlViewStore';
-import SqlViewDiscovery from '../../../components/setup/SqlViewDiscovery';
-import SqlViewConfiguration from '../../../components/setup/SqlViewConfiguration';
+import { SqlViewDiscovery, SqlViewConfiguration } from '@/components/features/sql-views';
 
 export default function SqlViewSetupPage() {
   const [activeTab, setActiveTab] = useState<'configure' | 'discover'>('configure');

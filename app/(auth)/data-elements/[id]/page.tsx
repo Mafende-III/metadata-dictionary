@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDHIS2Auth } from '../../../../hooks/useDHIS2Auth';
-import { Button } from '../../../../components/ui/Button';
-import { QualityBadge } from '../../../../components/metadata/QualityBadge';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { Button } from '@/components/ui/Button';
+import { QualityBadge } from '@/components/features/metadata/QualityBadge';
 import { formatDate } from '../../../../lib/utils';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
@@ -42,7 +42,7 @@ interface QualityAssessment {
 export default function DataElementDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { session } = useDHIS2Auth();
+  const { isAuthenticated, username, dhisBaseUrl, authToken } = useAuthStore();
   const [dataElement, setDataElement] = useState<DataElement | null>(null);
   const [quality, setQuality] = useState<QualityAssessment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +50,7 @@ export default function DataElementDetailPage() {
 
   useEffect(() => {
     const fetchDataElement = async () => {
-      if (!session || !params.id) return;
+      if (!isAuthenticated || !params.id) return;
 
       try {
         setLoading(true);
@@ -58,7 +58,7 @@ export default function DataElementDetailPage() {
         // Fetch data element details
         const response = await fetch(`/api/dhis2/proxy?endpoint=dataElements/${params.id}`, {
           headers: {
-            'Authorization': `Basic ${session.token}`,
+            'Authorization': `Basic ${authToken}`,
             'Content-Type': 'application/json',
           },
         });
@@ -95,7 +95,7 @@ export default function DataElementDetailPage() {
     };
 
     fetchDataElement();
-  }, [session, params.id]);
+  }, [isAuthenticated, authToken, params.id]);
 
   if (loading) {
     return (

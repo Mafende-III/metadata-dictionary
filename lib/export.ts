@@ -129,7 +129,7 @@ export class ExportService {
       headers.join(','), // Header row
       ...flattenedData.map(obj => 
         headers.map(header => {
-          const value = obj[header] === undefined ? '' : obj[header];
+          const value = (obj as Record<string, unknown>)[header] === undefined ? '' : (obj as Record<string, unknown>)[header];
           // Escape quotes and wrap in quotes if the value contains a comma
           const formatted = typeof value === 'string' && (value.includes(',') || value.includes('"')) 
             ? `"${value.replace(/"/g, '""')}"`

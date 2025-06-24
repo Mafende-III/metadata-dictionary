@@ -2,7 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { SqlViewService, SqlViewExecutionOptions, SqlViewExecutionResult } from '../lib/services/sqlViewService';
 import { SqlViewCacheEntry, useSqlViewCacheStore } from '../lib/stores/sqlViewCacheStore';
-import { useDHIS2Auth } from './useDHIS2Auth';
+import { useAuthStore } from '../lib/stores/authStore';
 
 interface UseSqlViewOptions {
   sqlViewId: string;
@@ -42,7 +42,7 @@ export function useSqlView({
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SqlViewExecutionResult['metadata'] | null>(null);
   
-  const { session } = useDHIS2Auth();
+  const { isAuthenticated, dhisBaseUrl, authToken } = useAuthStore();
   const { getEntriesForView, removeEntry } = useSqlViewCacheStore();
   
   // Get cached entries for this SQL view
@@ -50,9 +50,9 @@ export function useSqlView({
   
   // Create service instance
   const createService = useCallback(() => {
-    if (!session) throw new Error('Not authenticated');
-    return new SqlViewService(session.serverUrl, session.token, session.id);
-  }, [session]);
+    if (!isAuthenticated || !dhisBaseUrl || !authToken) throw new Error('Not authenticated');
+    return new SqlViewService(dhisBaseUrl, authToken, 'local-session');
+  }, [isAuthenticated, dhisBaseUrl, authToken]);
   
   // Execute SQL view
   const execute = useCallback(async (options: SqlViewExecutionOptions = {}) => {
@@ -64,7 +64,7 @@ export function useSqlView({
       const mergedOptions = { ...defaultOptions, ...options };
       const result = await service.executeView(sqlViewId, mergedOptions);
       
-      setData(result.data);
+      setData(result.data as Record<string, unknown>[]);
       setHeaders(result.headers);
       setMetadata(result.metadata);
     } catch (err) {
@@ -87,14 +87,14 @@ export function useSqlView({
       const service = createService();
       const cacheId = await service.saveExecutionToCache(
         sqlViewId,
+        'default-template', // templateId
         data,
         headers,
-        name,
         {
-          ...defaultOptions,
-          userNotes,
-          cacheExpiry: defaultOptions.cacheExpiry || 60
-        }
+          ...defaultOptions
+        },
+        metadata?.executionTime || 0, // executionTime
+        name
       );
       return cacheId;
     } catch (err) {
@@ -107,10 +107,11 @@ export function useSqlView({
   // Load data from cache
   const loadFromCache = useCallback((cacheId: string) => {
     const service = createService();
-    const entry = service.getCachedEntry(cacheId);
+    const entries = service.getCachedExecutionsForView(sqlViewId);
+    const entry = entries.find(e => e.id === cacheId);
     
     if (entry) {
-      setData(entry.data);
+      setData(entry.data as Record<string, unknown>[]);
       setHeaders(entry.headers || []);
       setMetadata({
         columns: entry.headers || Object.keys(entry.data[0] || {}),
@@ -185,10 +186,10 @@ export function useSqlView({
   
   // Auto-execute on mount if enabled
   useEffect(() => {
-    if (autoExecute && session) {
+    if (autoExecute && isAuthenticated) {
       execute();
     }
-  }, [autoExecute, session, execute]);
+  }, [autoExecute, isAuthenticated, execute]);
   
   return {
     // State

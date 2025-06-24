@@ -1,6 +1,6 @@
 'use client';
 
-import CredentialSetup from '../../components/auth/CredentialSetup';
+import { CredentialSetup } from '@/components/features/auth';
 
 export default function AuthPage() {
   return (

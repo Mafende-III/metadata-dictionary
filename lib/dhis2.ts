@@ -11,7 +11,7 @@ import { Session } from '../types/auth';
 
 // DHIS2 API client
 export class DHIS2Client {
-  private axiosInstance: AxiosInstance;
+  public axiosInstance: AxiosInstance;
   private serverUrl: string;
   private credentials: { username: string; password: string } | null = null;
   private token: string | null = null;

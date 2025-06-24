@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDHIS2Auth } from '../../hooks/useDHIS2Auth';
-import { Layout } from '../../components/layout/Layout';
-import { Loading } from '../../components/ui/Loading';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { Layout } from '@/src/components/layout/Layout';
+import { Loading } from '@/src/components/ui/Loading';
 
 export default function AuthenticatedLayout({
   children,
@@ -12,26 +12,15 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isLoading, isAuthenticated, session, logout } = useDHIS2Auth();
+  const { isAuthenticated, clearCredentials, username, dhisBaseUrl } = useAuthStore();
   
   // Redirect to login page if not authenticated
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push('/');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isAuthenticated, router]);
   
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loading
-          size="lg"
-          text="Loading authentication..."
-        />
-      </div>
-    );
-  }
   
   // Show loading state if not authenticated (will redirect)
   if (!isAuthenticated) {
@@ -45,11 +34,23 @@ export default function AuthenticatedLayout({
     );
   }
   
+  // Create session object from auth store data
+  const session = isAuthenticated ? {
+    id: 'local-session',
+    userId: username || 'user',
+    serverUrl: dhisBaseUrl || '',
+    username: username || '',
+    displayName: username || '',
+    token: '',
+    expiresAt: '',
+    lastUsed: new Date().toISOString()
+  } : null;
+
   // Render the layout with authenticated session
   return (
     <Layout
       session={session}
-      onLogout={logout}
+      onLogout={clearCredentials}
     >
       {children}
     </Layout>

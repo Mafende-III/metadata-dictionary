@@ -6,9 +6,12 @@ export interface Session {
   userId: string;
   serverUrl: string;
   username: string;
+  displayName?: string; // Optional display name
   token: string; // Base64 encoded username:password for Basic Auth
   expiresAt: string;
   lastUsed: string;
+  authorities?: string[]; // Optional user authorities
+  createdAt?: string; // Optional creation time
 }
 
 // Session state for the auth hook

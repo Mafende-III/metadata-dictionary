@@ -31,10 +31,10 @@ export const useFilters = (initialFilters: Partial<MetadataFilter> = {}) => {
     if (filters.type?.length) queryParams.set('type', filters.type.join(','));
     if (filters.group?.length) queryParams.set('group', filters.group.join(','));
     if (filters.qualityScore?.length) queryParams.set('quality', filters.qualityScore.join(','));
-    if (filters.page !== 1) queryParams.set('page', filters.page.toString());
-    if (filters.pageSize !== defaultFilters.pageSize) queryParams.set('pageSize', filters.pageSize.toString());
-    if (filters.sortBy !== defaultFilters.sortBy) queryParams.set('sortBy', filters.sortBy);
-    if (filters.sortDirection !== defaultFilters.sortDirection) queryParams.set('sortDir', filters.sortDirection);
+    if (filters.page && filters.page !== 1) queryParams.set('page', filters.page.toString());
+    if (filters.pageSize && filters.pageSize !== defaultFilters.pageSize) queryParams.set('pageSize', filters.pageSize.toString());
+    if (filters.sortBy && filters.sortBy !== defaultFilters.sortBy) queryParams.set('sortBy', filters.sortBy);
+    if (filters.sortDirection && filters.sortDirection !== defaultFilters.sortDirection) queryParams.set('sortDir', filters.sortDirection);
     
     // Update URL
     const queryString = queryParams.toString();

@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     
     if (id) {
       // Fetch single indicator
-      const indicator = await dhis2Client.getIndicator(id);
+      const indicator = await dhis2Client.getMetadataById('INDICATOR', id);
       
       if (!indicator) {
         return NextResponse.json(
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
       
       // Process and assess quality for each indicator
       const metadataWithQuality = await Promise.all(
-        response.indicators.map(async (indicator) => {
+        response.indicators.map(async (indicator: Indicator) => {
           // Check cache first
           const cacheResult = await CacheService.getCachedMetadata<Indicator>(
             sessionId || 'cookie-session',
