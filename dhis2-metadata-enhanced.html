@@ -1,0 +1,2612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHIS2 Metadata Dictionary - Complete Enhanced Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Navigation */
+        nav {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .nav-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--gray-600);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--primary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Instance Selector */
+        .instance-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--gray-100);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .instance-selector select {
+            border: none;
+            background: transparent;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* Page Sections */
+        .page {
+            display: none;
+            min-height: calc(100vh - 70px);
+            padding: 2rem 0;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 4rem 0;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .card-clickable {
+            cursor: pointer;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--gray-700);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--gray-200);
+            color: var(--gray-700);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-300);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gray-100);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-800);
+        }
+
+        .feature-card p {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+
+        /* Tables */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: var(--gray-50);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-700);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* Status badges */
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: #10b98115;
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: #f59e0b15;
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: #ef444415;
+            color: var(--danger);
+        }
+
+        .badge-primary {
+            background: #2563eb15;
+            color: var(--primary);
+        }
+
+        .badge-info {
+            background: #3b82f615;
+            color: var(--info);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            color: var(--gray-600);
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            background: var(--gray-200);
+            border-radius: 9999px;
+            height: 8px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            background: var(--primary);
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        /* Filters */
+        .filters {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+
+        /* Metadata Preview */
+        .metadata-preview {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .metadata-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .metadata-item:hover {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Version History */
+        .version-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .version-item:hover {
+            background: var(--gray-50);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: none;
+            background: var(--gray-100);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            color: var(--gray-400);
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: var(--gray-500);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Alert Box */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e3a8a;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            color: #78350f;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #14532d;
+        }
+
+        .alert-icon {
+            flex-shrink: 0;
+            font-size: 1.25rem;
+        }
+
+        /* Processing Method Toggle */
+        .processing-toggle {
+            display: flex;
+            background: var(--gray-100);
+            border-radius: 8px;
+            padding: 0.25rem;
+            margin-top: 0.5rem;
+        }
+
+        .processing-toggle label {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        .processing-toggle input[type="radio"] {
+            display: none;
+        }
+
+        .processing-toggle input[type="radio"]:checked + label {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        /* Code block */
+        code {
+            background: var(--gray-100);
+            padding: 0.125rem 0.375rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-family: monospace;
+        }
+
+        pre {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            margin: 1rem 0;
+        }
+
+        /* Checkbox group */
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        /* Processing Results Table */
+        .results-table {
+            font-size: 0.875rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .results-table tr.processing {
+            background: #eff6ff;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .results-table tr.success {
+            background: #f0fdf4;
+        }
+
+        .results-table tr.error {
+            background: #fef2f2;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Status Icons */
+        .status-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            font-size: 0.75rem;
+        }
+
+        .status-icon.pending {
+            background: var(--gray-200);
+            color: var(--gray-600);
+        }
+
+        .status-icon.processing {
+            background: var(--info);
+            color: white;
+            animation: spin 1s linear infinite;
+        }
+
+        .status-icon.success {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-icon.error {
+            background: var(--danger);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <div class="nav-content">
+                <div class="logo" onclick="showPage('home')">
+                    <span>📊</span>
+                    DHIS2 Metadata Dictionary
+                </div>
+                <div class="nav-links" id="navLinks" style="display: none;">
+                    <a class="nav-link" onclick="showPage('dictionaries')">Explore Dictionaries</a>
+                    <a class="nav-link" onclick="showPage('generate')">Generate New</a>
+                    <a class="nav-link" onclick="showPage('instances')">Instances</a>
+                    <a class="nav-link" onclick="showPage('sql-views')">SQL Views</a>
+                </div>
+                <div class="user-menu" id="userMenu" style="display: none;">
+                    <div class="instance-selector">
+                        <span>Instance:</span>
+                        <select id="currentInstance" onchange="switchInstance()">
+                            <option value="demo">Demo DHIS2</option>
+                            <option value="production">Production</option>
+                            <option value="new">+ Add New Instance</option>
+                        </select>
+                    </div>
+                    <span class="user-avatar">JD</span>
+                    <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Home Page -->
+    <div id="home" class="page active">
+        <div class="container">
+            <div class="hero">
+                <h1>DHIS2 Metadata Dictionary</h1>
+                <p>Centralized platform for exploring, generating, and managing metadata dictionaries across multiple DHIS2 instances</p>
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card" onclick="showPage('dictionaries')">
+                    <div class="feature-icon">📚</div>
+                    <h3>Explore Metadata Dictionaries</h3>
+                    <p>Browse existing dictionaries, view versions, and explore metadata from multiple DHIS2 instances</p>
+                    <button class="btn btn-primary" style="margin-top: 1rem;">Explore Now</button>
+                </div>
+                
+                <div class="feature-card" onclick="showPage('generate')">
+                    <div class="feature-icon">➕</div>
+                    <h3>Generate New Dictionary</h3>
+                    <p>Create new metadata dictionaries using SQL views with versioning and period-based generation</p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;">Create Dictionary</button>
+                </div>
+                
+                <div class="feature-card" onclick="showPage('instances')">
+                    <div class="feature-icon">🔗</div>
+                    <h3>Manage Instances</h3>
+                    <p>Configure and connect multiple DHIS2 instances for comprehensive metadata management</p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;">Configure</button>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div style="margin-top: 3rem;">
+                <h2 style="margin-bottom: 1.5rem;">System Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">12</div>
+                        <div class="stat-label">Saved Dictionaries</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">3</div>
+                        <div class="stat-label">Connected Instances</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">4,562</div>
+                        <div class="stat-label">Total Variables</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">28</div>
+                        <div class="stat-label">SQL Views</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explore Dictionaries Page -->
+    <div id="dictionaries" class="page">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h1>Metadata Dictionaries</h1>
+                <button class="btn btn-primary" onclick="showPage('generate')">
+                    ➕ Generate New Dictionary
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <div class="filter-row">
+                    <div class="form-group" style="margin: 0;">
+                        <input type="text" placeholder="Search dictionaries...">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <select>
+                            <option>All Instances</option>
+                            <option>Demo DHIS2</option>
+                            <option>Production</option>
+                            <option>Training</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <select>
+                            <option>All Types</option>
+                            <option>Data Elements</option>
+                            <option>Indicators</option>
+                            <option>Categories</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <select>
+                            <option>All Periods</option>
+                            <option>2025</option>
+                            <option>2024</option>
+                            <option>2023</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dictionary List -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dictionary Name</th>
+                            <th>Instance</th>
+                            <th>Type</th>
+                            <th>Variables</th>
+                            <th>Period</th>
+                            <th>Version</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr onclick="viewDictionary('dict-001')" style="cursor: pointer;">
+                            <td>
+                                <strong>Q1 2025 Health Data Elements</strong>
+                                <br><small style="color: var(--gray-500);">Complete metadata export with quality scores</small>
+                            </td>
+                            <td><span class="badge badge-primary">Demo DHIS2</span></td>
+                            <td>Data Elements</td>
+                            <td>1,247</td>
+                            <td>Q1 2025</td>
+                            <td>v2.1</td>
+                            <td>2025-01-20</td>
+                            <td onclick="event.stopPropagation();">
+                                <button class="btn btn-primary btn-sm" onclick="viewDictionary('dict-001')">View</button>
+                                <button class="btn btn-secondary btn-sm" onclick="updateDictionary('dict-001')">Update</button>
+                                <button class="btn btn-secondary btn-sm">Export</button>
+                            </td>
+                        </tr>
+                        <tr onclick="viewDictionary('dict-002')" style="cursor: pointer;">
+                            <td>
+                                <strong>Annual Indicators Assessment</strong>
+                                <br><small style="color: var(--gray-500);">All program indicators with formulas</small>
+                            </td>
+                            <td><span class="badge badge-success">Production</span></td>
+                            <td>Indicators</td>
+                            <td>342</td>
+                            <td>2024</td>
+                            <td>v1.3</td>
+                            <td>2025-01-15</td>
+                            <td onclick="event.stopPropagation();">
+                                <button class="btn btn-primary btn-sm" onclick="viewDictionary('dict-002')">View</button>
+                                <button class="btn btn-secondary btn-sm" onclick="updateDictionary('dict-002')">Update</button>
+                                <button class="btn btn-secondary btn-sm">Export</button>
+                            </td>
+                        </tr>
+                        <tr onclick="viewDictionary('dict-003')" style="cursor: pointer;">
+                            <td>
+                                <strong>Category Combinations Master List</strong>
+                                <br><small style="color: var(--gray-500);">All disaggregations and category options</small>
+                            </td>
+                            <td><span class="badge badge-warning">Training</span></td>
+                            <td>Categories</td>
+                            <td>156</td>
+                            <td>2025</td>
+                            <td>v1.0</td>
+                            <td>2025-01-10</td>
+                            <td onclick="event.stopPropagation();">
+                                <button class="btn btn-primary btn-sm" onclick="viewDictionary('dict-003')">View</button>
+                                <button class="btn btn-secondary btn-sm" onclick="updateDictionary('dict-003')">Update</button>
+                                <button class="btn btn-secondary btn-sm">Export</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Dictionary Details -->
+    <div id="dictionary-detail" class="page">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <button class="btn btn-secondary btn-sm" onclick="showPage('dictionaries')">← Back to Dictionaries</button>
+                    <h1 style="margin-top: 1rem;">Q1 2025 Health Data Elements</h1>
+                    <p style="color: var(--gray-600);">
+                        Instance: <strong>Demo DHIS2</strong> | 
+                        Version: <strong>v2.1</strong> | 
+                        Generated: <strong>2025-01-20</strong>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="updateDictionary('dict-001')">
+                        🔄 Update Dictionary
+                    </button>
+                    <button class="btn btn-secondary">
+                        📥 Export
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab active" onclick="switchDictTab('variables')">Variables</div>
+                <div class="tab" onclick="switchDictTab('versions')">Version History</div>
+                <div class="tab" onclick="switchDictTab('metadata')">Metadata Info</div>
+            </div>
+
+            <!-- Variables Tab -->
+            <div id="variablesTab" class="tab-content">
+                <div class="filters">
+                    <div class="filter-row">
+                        <input type="text" placeholder="Search variables...">
+                        <select>
+                            <option>All Categories</option>
+                            <option>ANC</option>
+                            <option>Immunization</option>
+                            <option>HIV</option>
+                        </select>
+                        <select>
+                            <option>All Value Types</option>
+                            <option>Number</option>
+                            <option>Text</option>
+                            <option>Boolean</option>
+                        </select>
+                        <button class="btn btn-primary">Filter</button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Variable Name</th>
+                                <th>System UID</th>
+                                <th>Category</th>
+                                <th>Value Type</th>
+                                <th>Aggregation</th>
+                                <th>Last Updated</th>
+                                <th>Quality Score</th>
+                                <th>Analytics API</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <strong>ANC 1st visit</strong>
+                                    <br><small style="color: var(--gray-500);">Antenatal care first visit</small>
+                                </td>
+                                <td><code style="background: var(--gray-100); padding: 0.25rem 0.5rem; border-radius: 4px;">fbfJHSPpUQD</code></td>
+                                <td>ANC</td>
+                                <td>Number</td>
+                                <td>Sum</td>
+                                <td>2025-01-15</td>
+                                <td><span class="badge badge-success">95%</span></td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm" onclick="showApiUrl('fbfJHSPpUQD')">
+                                        🔗 View API
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong>ANC 4th visit</strong>
+                                    <br><small style="color: var(--gray-500);">Antenatal care fourth visit</small>
+                                </td>
+                                <td><code style="background: var(--gray-100); padding: 0.25rem 0.5rem; border-radius: 4px;">cYeuwXTCPkU</code></td>
+                                <td>ANC</td>
+                                <td>Number</td>
+                                <td>Sum</td>
+                                <td>2025-01-10</td>
+                                <td><span class="badge badge-warning">75%</span></td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm" onclick="showApiUrl('cYeuwXTCPkU')">
+                                        🔗 View API
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <strong>BCG doses given</strong>
+                                    <br><small style="color: var(--gray-500);">BCG immunization doses administered</small>
+                                </td>
+                                <td><code style="background: var(--gray-100); padding: 0.25rem 0.5rem; border-radius: 4px;">s46m5MS0hxu</code></td>
+                                <td>Immunization</td>
+                                <td>Number</td>
+                                <td>Sum</td>
+                                <td>2024-12-20</td>
+                                <td><span class="badge badge-success">90%</span></td>
+                                <td>
+                                    <button class="btn btn-secondary btn-sm" onclick="showApiUrl('s46m5MS0hxu')">
+                                        🔗 View API
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div style="margin-top: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+                    <p style="font-size: 0.875rem; color: var(--gray-600);">
+                        <strong>Note:</strong> The Analytics API column provides direct access to the DHIS2 analytics endpoint for each variable. 
+                        This allows you to retrieve data values from analytics tables for specific periods and organization units.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Version History Tab -->
+            <div id="versionsTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <h3 style="margin-bottom: 1.5rem;">Version History</h3>
+                    
+                    <div class="version-item">
+                        <div>
+                            <strong>Version 2.1</strong> <span class="badge badge-primary">Current</span>
+                            <br><small style="color: var(--gray-500);">Generated on 2025-01-20 by John Doe</small>
+                            <br><small style="color: var(--gray-600);">Changes: Added 47 new data elements, updated 23 descriptions</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary btn-sm">View</button>
+                            <button class="btn btn-secondary btn-sm">Compare</button>
+                        </div>
+                    </div>
+                    
+                    <div class="version-item">
+                        <div>
+                            <strong>Version 2.0</strong>
+                            <br><small style="color: var(--gray-500);">Generated on 2025-01-10 by Jane Smith</small>
+                            <br><small style="color: var(--gray-600);">Changes: Major update with category combinations</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary btn-sm">View</button>
+                            <button class="btn btn-secondary btn-sm">Compare</button>
+                            <button class="btn btn-secondary btn-sm">Restore</button>
+                        </div>
+                    </div>
+                    
+                    <div class="version-item">
+                        <div>
+                            <strong>Version 1.0</strong>
+                            <br><small style="color: var(--gray-500);">Generated on 2024-12-15 by System</small>
+                            <br><small style="color: var(--gray-600);">Initial dictionary generation</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary btn-sm">View</button>
+                            <button class="btn btn-secondary btn-sm">Compare</button>
+                            <button class="btn btn-secondary btn-sm">Restore</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Metadata Info Tab -->
+            <div id="metadataTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <h3 style="margin-bottom: 1.5rem;">Dictionary Metadata</h3>
+                    <div class="metadata-preview">
+                        <div class="metadata-item">
+                            <strong>SQL View Used:</strong>
+                            <span>Active Data Elements (YN8eFwDcO0r)</span>
+                            <button class="btn btn-secondary btn-sm" onclick="showPage('sql-views')">View SQL</button>
+                        </div>
+                        <div class="metadata-item">
+                            <strong>Processing Method:</strong>
+                            <span>Individual Processing with ANC Group Filter</span>
+                            <span class="badge badge-success">No Timeouts</span>
+                        </div>
+                        <div class="metadata-item">
+                            <strong>Total Processing Time:</strong>
+                            <span>12 minutes 34 seconds</span>
+                            <span>247 items/minute</span>
+                        </div>
+                        <div class="metadata-item">
+                            <strong>Quality Assessment:</strong>
+                            <span>Average Quality Score: 87%</span>
+                            <span class="badge badge-success">High Quality</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generate New Dictionary Page (Enhanced) -->
+    <div id="generate" class="page">
+        <div class="container">
+            <h1 style="margin-bottom: 2rem;">Generate New Metadata Dictionary</h1>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <!-- Configuration Panel -->
+                <div>
+                    <div class="card">
+                        <h2 style="margin-bottom: 1.5rem;">Dictionary Configuration</h2>
+                        
+                        <div class="form-group">
+                            <label>Dictionary Name</label>
+                            <input type="text" id="dictName" placeholder="e.g., Q1 2025 Health Data Elements">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>DHIS2 Instance</label>
+                            <select id="instanceSelect" onchange="loadInstanceConfig()">
+                                <option value="">Select Instance</option>
+                                <option value="demo">Demo DHIS2 (v2.40.1)</option>
+                                <option value="production">Production (v2.40.0)</option>
+                                <option value="training">Training (v2.39.2)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Metadata Type</label>
+                            <select id="metadataType" onchange="loadMetadataConfig()" disabled>
+                                <option value="">Select Type</option>
+                                <option value="dataElements">Data Elements</option>
+                                <option value="indicators">Indicators</option>
+                                <option value="programIndicators">Program Indicators</option>
+                                <option value="dataElementGroups">Data Element Groups</option>
+                                <option value="indicatorGroups">Indicator Groups</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>SQL View Configuration</label>
+                            <select id="sqlViewSelect" onchange="configureSqlView()" disabled>
+                                <option value="">Select SQL View</option>
+                                <optgroup label="Data Elements">
+                                    <option value="YN8eFwDcO0r" data-type="dataElements">Active Data Elements (YN8eFwDcO0r)</option>
+                                    <option value="ABC123XYZ" data-type="dataElements">Data Element Completeness (ABC123XYZ)</option>
+                                </optgroup>
+                                <optgroup label="Indicators">
+                                    <option value="IND456ABC" data-type="indicators">Indicators with Formulas (IND456ABC)</option>
+                                </optgroup>
+                                <option value="custom">+ Create Custom SQL View</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Enhanced Metadata Group Filter -->
+                        <div id="metadataGroupFilter" class="form-group" style="display: none;">
+                            <label>Filter by Group <span style="color: var(--gray-500); font-weight: normal;">(Recommended for large datasets)</span></label>
+                            <select id="metadataGroupSelect" onchange="updateProcessingOptions()">
+                                <option value="">Loading groups...</option>
+                            </select>
+                            
+                            <div class="alert alert-info" style="margin-top: 0.5rem;">
+                                <span class="alert-icon">💡</span>
+                                <div>
+                                    <strong>Performance Tip:</strong> Select a group to process items individually and avoid timeout errors. 
+                                    The system will fetch group members and process each item through the SQL view separately.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Processing Method Selection -->
+                        <div id="processingMethodSection" class="form-group" style="display: none;">
+                            <label>Processing Method</label>
+                            <div class="processing-toggle">
+                                <input type="radio" name="processMethod" value="batch" id="methodBatch" checked>
+                                <label for="methodBatch">
+                                    <strong>Batch Processing</strong><br>
+                                    <small>Faster but may timeout</small>
+                                </label>
+                                <input type="radio" name="processMethod" value="individual" id="methodIndividual">
+                                <label for="methodIndividual">
+                                    <strong>Individual Processing</strong><br>
+                                    <small>Slower but prevents timeouts</small>
+                                </label>
+                            </div>
+                            
+                            <div id="batchWarning" class="alert alert-warning" style="margin-top: 0.5rem; display: none;">
+                                <span class="alert-icon">⚠️</span>
+                                <div>
+                                    <strong>Warning:</strong> Processing all items at once may cause a 504 Gateway Timeout for large datasets. 
+                                    Consider selecting a group or switching to individual processing.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Options -->
+                        <div id="advancedOptions" class="form-group" style="display: none;">
+                            <label>Advanced Options</label>
+                            <div class="checkbox-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="includeInactive" onchange="updateEstimate()">
+                                    Include inactive items
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="calculateQuality" checked>
+                                    Calculate quality scores
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="fetchDescriptions" checked>
+                                    Fetch detailed descriptions
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="retryFailed">
+                                    Auto-retry failed items (max 3 attempts)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Estimated Processing Info -->
+                        <div id="processingEstimate" class="alert alert-info" style="display: none;">
+                            <span class="alert-icon">ℹ️</span>
+                            <div>
+                                <strong>Processing Estimate:</strong><br>
+                                <span id="estimateDetails">
+                                    Items to process: <strong id="itemCount">0</strong><br>
+                                    Estimated time: <strong id="timeEstimate">0 minutes</strong><br>
+                                    Method: <strong id="methodText">Batch processing</strong>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="startGeneration()" style="width: 100%;" id="generateBtn">
+                            Generate Dictionary
+                        </button>
+                        
+                        <button class="btn btn-secondary" onclick="showSqlViewGuide()" style="width: 100%; margin-top: 0.5rem;">
+                            📖 SQL View Configuration Guide
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Preview Panel -->
+                <div>
+                    <div class="card">
+                        <h2 style="margin-bottom: 1.5rem;">Live Processing Results</h2>
+                        
+                        <div id="previewPanel">
+                            <!-- Processing Status Bar -->
+                            <div id="statusBar" style="display: none; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <span id="statusText" style="font-weight: 500;">Initializing...</span>
+                                    <span id="elapsedTime" style="font-size: 0.875rem; color: var(--gray-600);">00:00</span>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-bar" id="mainProgress" style="width: 0%"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.875rem;">
+                                    <span>Processed: <strong id="processedCount">0</strong> / <strong id="totalCount">0</strong></span>
+                                    <span>Success: <strong id="successCount" style="color: var(--success);">0</strong> | Failed: <strong id="failedCount" style="color: var(--danger);">0</strong></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Live Results Table -->
+                            <div id="resultsSection" style="display: none;">
+                                <h3 style="margin-bottom: 1rem; font-size: 1rem;">Processing Queue & Results</h3>
+                                <div class="table-container results-table">
+                                    <table style="font-size: 0.875rem;">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 40px;">Status</th>
+                                                <th>Name</th>
+                                                <th style="width: 100px;">UID</th>
+                                                <th style="width: 80px;">Type</th>
+                                                <th style="width: 60px;">Quality</th>
+                                                <th style="width: 120px;">Processing Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="resultsBody">
+                                            <!-- Dynamic results will be inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Error Summary -->
+                            <div id="errorSummary" style="display: none; margin-top: 1rem;">
+                                <div class="alert alert-danger">
+                                    <span class="alert-icon">❌</span>
+                                    <div>
+                                        <strong>Errors Encountered:</strong>
+                                        <ul id="errorList" style="margin-top: 0.5rem; margin-bottom: 0;">
+                                            <!-- Error messages will be listed here -->
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Completion Summary -->
+                            <div id="completionSummary" style="display: none; margin-top: 1rem;">
+                                <div class="alert alert-success">
+                                    <span class="alert-icon">✅</span>
+                                    <div>
+                                        <strong>Dictionary Generated Successfully!</strong><br>
+                                        <span id="summaryText"></span>
+                                        <div style="margin-top: 1rem;">
+                                            <button class="btn btn-primary btn-sm" onclick="viewGeneratedDictionary()">View Dictionary</button>
+                                            <button class="btn btn-secondary btn-sm" onclick="exportResults()">Export Results</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Empty State -->
+                            <div id="emptyPreview" class="empty-state">
+                                <div class="empty-state-icon">📊</div>
+                                <h3>No Configuration Selected</h3>
+                                <p>Configure the dictionary settings to begin processing</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Processing Statistics -->
+                    <div id="processingStats" class="card" style="display: none; margin-top: 1rem;">
+                        <h3 style="margin-bottom: 1rem;">Processing Statistics</h3>
+                        <div class="stats-grid">
+                            <div class="stat-card" style="border-left-color: var(--info);">
+                                <div class="stat-value" id="avgProcessTime">0s</div>
+                                <div class="stat-label">Avg. Process Time</div>
+                            </div>
+                            <div class="stat-card" style="border-left-color: var(--success);">
+                                <div class="stat-value" id="successRate">0%</div>
+                                <div class="stat-label">Success Rate</div>
+                            </div>
+                            <div class="stat-card" style="border-left-color: var(--warning);">
+                                <div class="stat-value" id="itemsPerMinute">0</div>
+                                <div class="stat-label">Items/Minute</div>
+                            </div>
+                            <div class="stat-card" style="border-left-color: var(--primary);">
+                                <div class="stat-value" id="remainingTime">--</div>
+                                <div class="stat-label">Est. Remaining</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instances Management -->
+    <div id="instances" class="page">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h1>DHIS2 Instances</h1>
+                <button class="btn btn-primary" onclick="showAddInstanceModal()">
+                    ➕ Add New Instance
+                </button>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <h3>Demo DHIS2</h3>
+                        <span class="badge badge-success">Connected</span>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 1rem;">https://dev.dhis2.org/dhis</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                        <small><strong>Version:</strong> 2.40.1</small>
+                        <small><strong>SQL Views:</strong> 12</small>
+                        <small><strong>Dictionaries:</strong> 5</small>
+                        <small><strong>Last Sync:</strong> 2 hours ago</small>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-sm">Test Connection</button>
+                        <button class="btn btn-secondary btn-sm">Configure</button>
+                        <button class="btn btn-secondary btn-sm">Sync Metadata</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <h3>Production</h3>
+                        <span class="badge badge-success">Connected</span>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 1rem;">https://hmis.health.gov/dhis</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                        <small><strong>Version:</strong> 2.40.0</small>
+                        <small><strong>SQL Views:</strong> 8</small>
+                        <small><strong>Dictionaries:</strong> 3</small>
+                        <small><strong>Last Sync:</strong> 1 day ago</small>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-sm">Test Connection</button>
+                        <button class="btn btn-secondary btn-sm">Configure</button>
+                        <button class="btn btn-secondary btn-sm">Sync Metadata</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                        <h3>Training</h3>
+                        <span class="badge badge-warning">Disconnected</span>
+                    </div>
+                    <p style="color: var(--gray-600); margin-bottom: 1rem;">https://training.dhis2.org/dhis</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                        <small><strong>Version:</strong> 2.39.2</small>
+                        <small><strong>SQL Views:</strong> 5</small>
+                        <small><strong>Dictionaries:</strong> 2</small>
+                        <small><strong>Last Sync:</strong> 1 week ago</small>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-primary btn-sm">Reconnect</button>
+                        <button class="btn btn-secondary btn-sm">Configure</button>
+                        <button class="btn btn-danger btn-sm">Remove</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SQL Views Management -->
+    <div id="sql-views" class="page">
+        <div class="container">
+            <h1 style="margin-bottom: 2rem;">SQL View Configurations</h1>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="switchSqlTab('available')">Available SQL Views</div>
+                <div class="tab" onclick="switchSqlTab('create')">Create New</div>
+                <div class="tab" onclick="switchSqlTab('guide')">Configuration Guide</div>
+            </div>
+            
+            <!-- Available SQL Views -->
+            <div id="availableSqlTab" class="tab-content">
+                <div class="filters">
+                    <div class="filter-row">
+                        <input type="text" placeholder="Search SQL views...">
+                        <select>
+                            <option>All Instances</option>
+                            <option>Demo DHIS2</option>
+                            <option>Production</option>
+                        </select>
+                        <select>
+                            <option>All Types</option>
+                            <option>Aggregate</option>
+                            <option>Tracker</option>
+                            <option>Event</option>
+                        </select>
+                        <select>
+                            <option>All Versions</option>
+                            <option>v2.40+</option>
+                            <option>v2.39</option>
+                            <option>v2.38</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Grouped SQL Views -->
+                <div style="margin-top: 2rem;">
+                    <h3 style="margin-bottom: 1rem; color: var(--gray-700);">📊 Aggregate Data (v2.40+)</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>SQL View Name</th>
+                                    <th>UID</th>
+                                    <th>Instance</th>
+                                    <th>API Endpoint</th>
+                                    <th>Columns</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Active Data Elements</strong>
+                                        <br><small style="color: var(--gray-500);">Data elements updated in last 6 months with quality scores</small>
+                                    </td>
+                                    <td><code>YN8eFwDcO0r</code></td>
+                                    <td><span class="badge badge-primary">Demo DHIS2</span></td>
+                                    <td style="font-size: 0.75rem;">
+                                        <code>/api/sqlViews/YN8eFwDcO0r/data.json</code>
+                                    </td>
+                                    <td>12</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm" onclick="testSqlView('YN8eFwDcO0r')">Test</button>
+                                        <button class="btn btn-secondary btn-sm">Edit</button>
+                                        <button class="btn btn-secondary btn-sm">Clone</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <strong>Data Element Completeness</strong>
+                                        <br><small style="color: var(--gray-500);">Completeness assessment with disaggregations</small>
+                                    </td>
+                                    <td><code>ABC123XYZ</code></td>
+                                    <td><span class="badge badge-primary">Demo DHIS2</span></td>
+                                    <td style="font-size: 0.75rem;">
+                                        <code>/api/sqlViews/ABC123XYZ/data.json</code>
+                                    </td>
+                                    <td>8</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm">Test</button>
+                                        <button class="btn btn-secondary btn-sm">Edit</button>
+                                        <button class="btn btn-secondary btn-sm">Clone</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <h3 style="margin: 2rem 0 1rem; color: var(--gray-700);">🎯 Tracker Data (v2.40+)</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>SQL View Name</th>
+                                    <th>UID</th>
+                                    <th>Instance</th>
+                                    <th>API Endpoint</th>
+                                    <th>Columns</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Tracked Entity Attributes</strong>
+                                        <br><small style="color: var(--gray-500);">All TEAs with value types and option sets</small>
+                                    </td>
+                                    <td><code>TRK123ABC</code></td>
+                                    <td><span class="badge badge-success">Production</span></td>
+                                    <td style="font-size: 0.75rem;">
+                                        <code>/api/sqlViews/TRK123ABC/data.json</code>
+                                    </td>
+                                    <td>10</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm">Test</button>
+                                        <button class="btn btn-secondary btn-sm">Edit</button>
+                                        <button class="btn btn-secondary btn-sm">Clone</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Create New SQL View -->
+            <div id="createSqlTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <h2 style="margin-bottom: 1.5rem;">Create New SQL View</h2>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <div class="form-group">
+                                <label>SQL View Name</label>
+                                <input type="text" placeholder="e.g., Active Indicators with Formulas">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Target Instance</label>
+                                <select>
+                                    <option>Demo DHIS2 (v2.40.1)</option>
+                                    <option>Production (v2.40.0)</option>
+                                    <option>Training (v2.39.2)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Data Type</label>
+                                <select>
+                                    <option>Aggregate</option>
+                                    <option>Tracker</option>
+                                    <option>Event</option>
+                                    <option>Mixed</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>View Type</label>
+                                <select>
+                                    <option>Materialized View (Cached)</option>
+                                    <option>Query (Real-time)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="form-group">
+                                <label>DHIS2 Version Compatibility</label>
+                                <select>
+                                    <option>v2.40+</option>
+                                    <option>v2.39</option>
+                                    <option>v2.38</option>
+                                    <option>All versions</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Required Columns</label>
+                                <div style="font-size: 0.875rem; color: var(--gray-600);">
+                                    <p style="margin-bottom: 0.5rem;">⚠️ Each SQL view must include:</p>
+                                    <ul style="margin: 0; padding-left: 1.5rem;">
+                                        <li>UID column (system identifier)</li>
+                                        <li>Name/display column</li>
+                                        <li>Analytics API URL column</li>
+                                        <li>Period column (if applicable)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>SQL Query</label>
+                        <textarea rows="12" style="font-family: monospace; font-size: 0.875rem;" placeholder="WITH active_indicators AS (
+    SELECT 
+        i.uid AS indicator_uid,
+        i.name AS indicator_name,
+        i.indicatortype AS indicator_type,
+        i.numerator AS numerator_formula,
+        i.denominator AS denominator_formula,
+        i.annualized AS is_annualized,
+        i.lastupdated AS last_updated,
+        CONCAT('/api/analytics?dimension=dx:', i.uid, '&dimension=pe:LAST_12_MONTHS&dimension=ou:LEVEL-1') AS analytics_api_url,
+        'Q1 2025' AS period,
+        CASE 
+            WHEN i.numerator IS NOT NULL AND i.denominator IS NOT NULL THEN 100
+            WHEN i.numerator IS NOT NULL OR i.denominator IS NOT NULL THEN 75
+            ELSE 50
+        END AS quality_score
+    FROM indicators i
+    WHERE i.lastupdated > NOW() - INTERVAL '6 months'
+)
+SELECT * FROM active_indicators
+ORDER BY last_updated DESC;"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-primary">Save SQL View</button>
+                        <button class="btn btn-secondary">Test Query</button>
+                        <button class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configuration Guide -->
+            <div id="guideSqlTab" class="tab-content" style="display: none;">
+                <div class="card">
+                    <h2 style="margin-bottom: 1.5rem;">📖 SQL View Configuration Guide</h2>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">Overview</h3>
+                        <p>SQL Views in DHIS2 allow you to create custom queries against the database to generate metadata dictionaries. Each SQL view is assigned a unique identifier (UID) and can be accessed via the DHIS2 API.</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">Key Concepts</h3>
+                        <div style="background: var(--gray-50); padding: 1.5rem; border-radius: 8px;">
+                            <h4 style="margin-bottom: 0.5rem;">1. SQL View UID</h4>
+                            <p style="margin-bottom: 1rem;">Each SQL view gets a unique 11-character identifier (e.g., YN8eFwDcO0r) that is used to access it via the API.</p>
+                            
+                            <h4 style="margin-bottom: 0.5rem;">2. API Endpoint Generation</h4>
+                            <p style="margin-bottom: 1rem;">Once configured, the API endpoint is: <code>{instance}/api/sqlViews/{UID}/data.json</code></p>
+                            
+                            <h4 style="margin-bottom: 0.5rem;">3. Analytics API URL</h4>
+                            <p>Each variable should include a column with its analytics API URL for accessing data values.</p>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">Required Columns</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Column Name</th>
+                                    <th>Description</th>
+                                    <th>Example</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>uid</code></td>
+                                    <td>Unique identifier of the metadata object</td>
+                                    <td>fbfJHSPpUQD</td>
+                                </tr>
+                                <tr>
+                                    <td><code>name</code></td>
+                                    <td>Display name of the metadata object</td>
+                                    <td>ANC 1st visit</td>
+                                </tr>
+                                <tr>
+                                    <td><code>analytics_api_url</code></td>
+                                    <td>API endpoint for data values</td>
+                                    <td>/api/analytics?dimension=dx:fbfJHSPpUQD</td>
+                                </tr>
+                                <tr>
+                                    <td><code>period</code></td>
+                                    <td>Time period for the dictionary</td>
+                                    <td>Q1 2025</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="margin-bottom: 1rem;">Example SQL Views by Type</h3>
+                        
+                        <h4 style="margin-bottom: 0.5rem;">Aggregate Data Elements (v2.40+)</h4>
+                        <div style="background: #1a1a1a; color: #fff; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.875rem; margin-bottom: 1rem;">
+<pre>SELECT 
+    de.uid AS data_element_uid,
+    de.name AS data_element_name,
+    de.valuetype AS value_type,
+    cc.name AS category_combo,
+    CONCAT('/api/analytics?dimension=dx:', de.uid, '&dimension=pe:2025Q1') AS analytics_api_url,
+    '2025Q1' AS period
+FROM dataelement de
+LEFT JOIN categorycombo cc ON de.categorycomboid = cc.categorycomboid
+WHERE de.domaintype = 'AGGREGATE';</pre>
+                        </div>
+                        
+                        <h4 style="margin-bottom: 0.5rem;">Tracker Attributes (v2.40+)</h4>
+                        <div style="background: #1a1a1a; color: #fff; padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.875rem;">
+<pre>SELECT 
+    tea.uid AS attribute_uid,
+    tea.name AS attribute_name,
+    tea.valuetype AS value_type,
+    CONCAT('/api/trackedEntityAttributes/', tea.uid) AS analytics_api_url
+FROM trackedentityattribute tea
+WHERE tea.active = true;</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Instance Modal -->
+    <div id="addInstanceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New DHIS2 Instance</h2>
+                <button class="modal-close" onclick="hideModal('addInstanceModal')">✕</button>
+            </div>
+            
+            <form onsubmit="addInstance(event)">
+                <div class="form-group">
+                    <label>Instance Name</label>
+                    <input type="text" placeholder="e.g., Regional HMIS" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>DHIS2 URL</label>
+                    <input type="url" placeholder="https://your-instance.dhis2.org/api" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" placeholder="Enter username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="Enter password" required>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary">Add Instance</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('addInstanceModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Dictionary Modal -->
+    <div id="updateDictionaryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Update Dictionary</h2>
+                <button class="modal-close" onclick="hideModal('updateDictionaryModal')">✕</button>
+            </div>
+            
+            <p style="margin-bottom: 1.5rem;">Update "Q1 2025 Health Data Elements" to create version 2.2</p>
+            
+            <div class="form-group">
+                <label>Update Period</label>
+                <select>
+                    <option>Q1 2025 (Current)</option>
+                    <option>Q2 2025</option>
+                    <option>Custom Range</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Version Notes</label>
+                <textarea rows="3" placeholder="Describe changes in this version..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Update Options</label>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" checked> Re-run quality assessments
+                    </label>
+                    <label style="font-weight: normal;">
+                        <input type="checkbox" checked> Update descriptions from source
+                    </label>
+                    <label style="font-weight: normal;">
+                        <input type="checkbox"> Include new variables only
+                    </label>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" onclick="performUpdate()">Update Dictionary</button>
+                <button class="btn btn-secondary" onclick="hideModal('updateDictionaryModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API URL Modal -->
+    <div id="apiUrlModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Analytics API URL</h2>
+                <button class="modal-close" onclick="hideModal('apiUrlModal')">✕</button>
+            </div>
+            
+            <div id="apiUrlContent">
+                <div class="form-group">
+                    <label>Full API Endpoint</label>
+                    <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.875rem; word-break: break-all;">
+                        <span id="fullApiUrl">https://dev.dhis2.org/dhis/api/analytics?dimension=dx:fbfJHSPpUQD&dimension=pe:2025Q1&dimension=ou:LEVEL-1</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Parameters</label>
+                    <table style="font-size: 0.875rem;">
+                        <tr>
+                            <td style="padding: 0.5rem;"><strong>Data Element (dx):</strong></td>
+                            <td style="padding: 0.5rem;"><code id="apiDataElement">fbfJHSPpUQD</code></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.5rem;"><strong>Period (pe):</strong></td>
+                            <td style="padding: 0.5rem;"><code>2025Q1</code></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.5rem;"><strong>Org Unit (ou):</strong></td>
+                            <td style="padding: 0.5rem;"><code>LEVEL-1</code></td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="copyApiUrl()">Copy URL</button>
+                    <button class="btn btn-secondary" onclick="testApiUrl()">Test in Browser</button>
+                    <button class="btn btn-secondary" onclick="hideModal('apiUrlModal')">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentPage = 'home';
+        let isAuthenticated = false;
+        let currentDictionary = null;
+        let processingQueue = [];
+        let processingStats = {
+            startTime: null,
+            processed: 0,
+            success: 0,
+            failed: 0,
+            totalTime: 0,
+            errors: []
+        };
+        let processingInterval = null;
+        let timeInterval = null;
+
+        // Mock data for groups (in real implementation, these would be fetched from DHIS2 API)
+        const mockDataElementGroups = [
+            { id: 'oehv9EO3vP7', name: 'ANC (Antenatal Care)', itemCount: 127 },
+            { id: 'oDkJh5Ddh7d', name: 'Immunization', itemCount: 89 },
+            { id: 'nI1B6SVvHJL', name: 'HIV/AIDS', itemCount: 234 },
+            { id: 'ZxtYfBCmF3L', name: 'Malaria', itemCount: 67 },
+            { id: 'RH4VuKaY8Xg', name: 'Nutrition', itemCount: 156 },
+            { id: 'YuQRtpLP10I', name: 'Family Planning', itemCount: 45 },
+            { id: 'cNzfcPWEGSH', name: 'TB (Tuberculosis)', itemCount: 112 },
+            { id: 'SCVeBskKEPU', name: 'Maternal Health', itemCount: 198 },
+            { id: 'ALL_ITEMS', name: 'All Data Elements (Use with caution)', itemCount: 4562 }
+        ];
+
+        const mockIndicatorGroups = [
+            { id: 'zFDYIgyGmXG', name: 'ANC Indicators', itemCount: 23 },
+            { id: 'eMbwHj2bZ0E', name: 'Immunization Coverage', itemCount: 34 },
+            { id: 'HIV123ABC', name: 'HIV Cascade Indicators', itemCount: 56 },
+            { id: 'MAL456DEF', name: 'Malaria Indicators', itemCount: 28 }
+        ];
+
+        // Navigation functions
+        function showPage(pageId) {
+            if (!isAuthenticated && pageId !== 'home') {
+                isAuthenticated = true;
+                document.getElementById('navLinks').style.display = 'flex';
+                document.getElementById('userMenu').style.display = 'flex';
+            }
+
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.classList.add('active');
+                currentPage = pageId;
+                updateNavLinks(pageId);
+            } else {
+                console.error(`Page not found: ${pageId}`);
+            }
+        }
+
+        function updateNavLinks(pageId) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            const pageNavMap = {
+                'dictionaries': 'Explore Dictionaries',
+                'dictionary-detail': 'Explore Dictionaries',
+                'generate': 'Generate New',
+                'instances': 'Instances',
+                'sql-views': 'SQL Views'
+            };
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                if (link.textContent === pageNavMap[pageId]) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Dictionary functions
+        function viewDictionary(dictId) {
+            currentDictionary = dictId;
+            showPage('dictionary-detail');
+        }
+
+        function updateDictionary(dictId) {
+            currentDictionary = dictId;
+            const modal = document.getElementById('updateDictionaryModal');
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function performUpdate() {
+            hideModal('updateDictionaryModal');
+            alert('Dictionary update started. This will create version 2.2');
+        }
+
+        // Enhanced configuration functions
+        function loadInstanceConfig() {
+            const instance = document.getElementById('instanceSelect').value;
+            const metadataTypeSelect = document.getElementById('metadataType');
+            if (instance && metadataTypeSelect) {
+                metadataTypeSelect.disabled = false;
+            }
+        }
+
+        function loadMetadataConfig() {
+            const metadataType = document.getElementById('metadataType').value;
+            const sqlViewSelect = document.getElementById('sqlViewSelect');
+            if (metadataType && sqlViewSelect) {
+                sqlViewSelect.disabled = false;
+                loadMetadataGroups(metadataType);
+            }
+        }
+
+        function loadMetadataGroups(metadataType) {
+            const groupSelect = document.getElementById('metadataGroupSelect');
+            if (!groupSelect) return;
+            
+            groupSelect.innerHTML = '<option value="">All Items (May cause timeout for large datasets)</option>';
+            
+            let groups = [];
+            if (metadataType === 'dataElements') {
+                groups = mockDataElementGroups;
+            } else if (metadataType === 'indicators') {
+                groups = mockIndicatorGroups;
+            }
+            
+            groups.forEach(group => {
+                if (group.id !== 'ALL_ITEMS') {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.setAttribute('data-count', group.itemCount);
+                    option.textContent = `${group.name} (${group.itemCount} items)`;
+                    groupSelect.appendChild(option);
+                }
+            });
+            
+            const filterDiv = document.getElementById('metadataGroupFilter');
+            if (filterDiv) {
+                filterDiv.style.display = 'block';
+            }
+        }
+
+        function configureSqlView() {
+            const sqlView = document.getElementById('sqlViewSelect').value;
+            if (sqlView && sqlView !== 'custom') {
+                const methodSection = document.getElementById('processingMethodSection');
+                const advancedOptions = document.getElementById('advancedOptions');
+                if (methodSection) methodSection.style.display = 'block';
+                if (advancedOptions) advancedOptions.style.display = 'block';
+                updateProcessingOptions();
+            } else if (sqlView === 'custom') {
+                showPage('sql-views');
+                switchSqlTab('create');
+            }
+        }
+
+        function updateProcessingOptions() {
+            const groupSelect = document.getElementById('metadataGroupSelect');
+            const selectedGroup = groupSelect ? groupSelect.value : '';
+            const itemCount = selectedGroup && groupSelect.selectedOptions[0] ? 
+                parseInt(groupSelect.selectedOptions[0].getAttribute('data-count')) : 
+                4562;
+            
+            const batchWarning = document.getElementById('batchWarning');
+            const methodIndividual = document.getElementById('methodIndividual');
+            
+            if (itemCount > 500 && !selectedGroup && batchWarning && methodIndividual) {
+                methodIndividual.checked = true;
+                batchWarning.style.display = 'block';
+            } else if (batchWarning) {
+                batchWarning.style.display = 'none';
+            }
+            
+            updateEstimate();
+        }
+
+        function updateEstimate() {
+            const groupSelect = document.getElementById('metadataGroupSelect');
+            const selectedGroup = groupSelect ? groupSelect.value : '';
+            const itemCount = selectedGroup && groupSelect.selectedOptions[0] ? 
+                parseInt(groupSelect.selectedOptions[0].getAttribute('data-count')) : 
+                4562;
+            
+            const processMethodElement = document.querySelector('input[name="processMethod"]:checked');
+            const processMethod = processMethodElement ? processMethodElement.value : 'batch';
+            const includeInactive = document.getElementById('includeInactive');
+            const includeInactiveChecked = includeInactive ? includeInactive.checked : false;
+            
+            const adjustedCount = includeInactiveChecked ? Math.floor(itemCount * 1.3) : itemCount;
+            
+            const timePerItem = processMethod === 'batch' ? 0.1 : 0.5;
+            const estimatedSeconds = adjustedCount * timePerItem;
+            const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
+            
+            const itemCountEl = document.getElementById('itemCount');
+            const timeEstimateEl = document.getElementById('timeEstimate');
+            const methodTextEl = document.getElementById('methodText');
+            const estimateDiv = document.getElementById('processingEstimate');
+            
+            if (itemCountEl) itemCountEl.textContent = adjustedCount;
+            if (timeEstimateEl) timeEstimateEl.textContent = `${estimatedMinutes} minute${estimatedMinutes > 1 ? 's' : ''}`;
+            if (methodTextEl) methodTextEl.textContent = processMethod === 'batch' ? 'Batch processing' : 'Individual processing';
+            if (estimateDiv) estimateDiv.style.display = 'block';
+        }
+
+        // Generate dictionary
+        function startGeneration() {
+            const dictName = document.getElementById('dictName');
+            const instance = document.getElementById('instanceSelect');
+            const sqlView = document.getElementById('sqlViewSelect');
+            
+            if (!dictName?.value || !instance?.value || !sqlView?.value) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            // Reset processing state
+            processingStats = {
+                startTime: Date.now(),
+                processed: 0,
+                success: 0,
+                failed: 0,
+                totalTime: 0,
+                errors: []
+            };
+            
+            // Setup UI
+            const emptyPreview = document.getElementById('emptyPreview');
+            const statusBar = document.getElementById('statusBar');
+            const resultsSection = document.getElementById('resultsSection');
+            const processingStatsEl = document.getElementById('processingStats');
+            const generateBtn = document.getElementById('generateBtn');
+            const resultsBody = document.getElementById('resultsBody');
+            
+            if (emptyPreview) emptyPreview.style.display = 'none';
+            if (statusBar) statusBar.style.display = 'block';
+            if (resultsSection) resultsSection.style.display = 'block';
+            if (processingStatsEl) processingStatsEl.style.display = 'block';
+            if (generateBtn) generateBtn.disabled = true;
+            if (resultsBody) resultsBody.innerHTML = '';
+            
+            // Get processing configuration
+            const groupSelect = document.getElementById('metadataGroupSelect');
+            const selectedGroup = groupSelect ? groupSelect.value : '';
+            const processMethodEl = document.querySelector('input[name="processMethod"]:checked');
+            const processMethod = processMethodEl ? processMethodEl.value : 'batch';
+            
+            if (selectedGroup && processMethod === 'individual') {
+                processGroupIndividually(selectedGroup);
+            } else if (!selectedGroup && processMethod === 'batch') {
+                processBatchAll();
+            } else {
+                processAllIndividually();
+            }
+        }
+
+        function processGroupIndividually(groupId) {
+            const groupSelect = document.getElementById('metadataGroupSelect');
+            const groupName = groupSelect.selectedOptions[0] ? groupSelect.selectedOptions[0].textContent : 'Selected Group';
+            const itemCount = groupSelect.selectedOptions[0] ? 
+                parseInt(groupSelect.selectedOptions[0].getAttribute('data-count')) : 0;
+            
+            const statusText = document.getElementById('statusText');
+            const totalCount = document.getElementById('totalCount');
+            
+            if (statusText) statusText.textContent = `Loading ${groupName}...`;
+            if (totalCount) totalCount.textContent = itemCount;
+            
+            setTimeout(() => {
+                const mockGroupMembers = generateMockGroupMembers(groupId, itemCount);
+                processingQueue = mockGroupMembers;
+                
+                if (statusText) statusText.textContent = `Processing ${groupName} individually...`;
+                startIndividualProcessing();
+            }, 1000);
+        }
+
+        function processBatchAll() {
+            const statusText = document.getElementById('statusText');
+            const totalCount = document.getElementById('totalCount');
+            
+            if (statusText) statusText.textContent = 'Processing all items in batch...';
+            if (totalCount) totalCount.textContent = '4562';
+            
+            const batchResults = generateMockBatchResults(100);
+            displayBatchResults(batchResults);
+        }
+
+        function processAllIndividually() {
+            const statusText = document.getElementById('statusText');
+            
+            if (statusText) statusText.textContent = 'Loading all metadata items...';
+            
+            setTimeout(() => {
+                const allItems = generateMockGroupMembers('ALL', 200);
+                processingQueue = allItems;
+                const totalCount = document.getElementById('totalCount');
+                if (totalCount) totalCount.textContent = allItems.length;
+                
+                if (statusText) statusText.textContent = 'Processing all items individually...';
+                startIndividualProcessing();
+            }, 1500);
+        }
+
+        function startIndividualProcessing() {
+            timeInterval = setInterval(updateElapsedTime, 1000);
+            processNextItem();
+        }
+
+        function processNextItem() {
+            if (processingQueue.length === 0) {
+                completeProcessing();
+                return;
+            }
+            
+            const item = processingQueue.shift();
+            const rowId = `row-${item.id}`;
+            
+            const row = createResultRow(item, 'processing');
+            const resultsBody = document.getElementById('resultsBody');
+            if (resultsBody) {
+                resultsBody.insertAdjacentHTML('afterbegin', row);
+            }
+            
+            const processingTime = 200 + Math.random() * 800;
+            
+            setTimeout(() => {
+                const success = Math.random() > 0.05;
+                updateResultRow(rowId, item, success, processingTime);
+                
+                processingStats.processed++;
+                processingStats.totalTime += processingTime;
+                if (success) {
+                    processingStats.success++;
+                } else {
+                    processingStats.failed++;
+                    processingStats.errors.push({
+                        item: item.name,
+                        error: 'Failed to fetch metadata from SQL view'
+                    });
+                }
+                
+                updateProgress();
+                updateStatistics();
+                processNextItem();
+            }, processingTime);
+        }
+
+        function createResultRow(item, status) {
+            return `
+                <tr id="row-${item.id}" class="${status}">
+                    <td>
+                        <span class="status-icon ${status}">
+                            ${status === 'processing' ? '⟳' : ''}
+                        </span>
+                    </td>
+                    <td>${item.name}</td>
+                    <td><code>${item.id}</code></td>
+                    <td>${item.type || 'Data Element'}</td>
+                    <td>-</td>
+                    <td>Processing...</td>
+                </tr>
+            `;
+        }
+
+        function updateResultRow(rowId, item, success, processingTime) {
+            const row = document.getElementById(rowId);
+            if (!row) return;
+            
+            const quality = success ? Math.floor(70 + Math.random() * 30) : 0;
+            const statusClass = success ? 'success' : 'error';
+            const statusIcon = success ? '✓' : '✗';
+            
+            row.className = statusClass;
+            row.innerHTML = `
+                <td>
+                    <span class="status-icon ${statusClass}">${statusIcon}</span>
+                </td>
+                <td>${item.name}</td>
+                <td><code>${item.id}</code></td>
+                <td>${item.type || 'Data Element'}</td>
+                <td>${success ? `<span class="badge badge-${quality > 80 ? 'success' : 'warning'}">${quality}%</span>` : '-'}</td>
+                <td>${(processingTime / 1000).toFixed(2)}s</td>
+            `;
+        }
+
+        function updateProgress() {
+            const totalCountEl = document.getElementById('totalCount');
+            const total = totalCountEl ? parseInt(totalCountEl.textContent) : 0;
+            const percentage = total > 0 ? (processingStats.processed / total) * 100 : 0;
+            
+            const elements = {
+                mainProgress: document.getElementById('mainProgress'),
+                processedCount: document.getElementById('processedCount'),
+                successCount: document.getElementById('successCount'),
+                failedCount: document.getElementById('failedCount')
+            };
+            
+            if (elements.mainProgress) elements.mainProgress.style.width = percentage + '%';
+            if (elements.processedCount) elements.processedCount.textContent = processingStats.processed;
+            if (elements.successCount) elements.successCount.textContent = processingStats.success;
+            if (elements.failedCount) elements.failedCount.textContent = processingStats.failed;
+        }
+
+        function updateStatistics() {
+            const avgTime = processingStats.totalTime / processingStats.processed / 1000;
+            const successRate = (processingStats.success / processingStats.processed) * 100;
+            const elapsedMinutes = (Date.now() - processingStats.startTime) / 60000;
+            const itemsPerMinute = processingStats.processed / elapsedMinutes;
+            
+            const elements = {
+                avgProcessTime: document.getElementById('avgProcessTime'),
+                successRate: document.getElementById('successRate'),
+                itemsPerMinute: document.getElementById('itemsPerMinute'),
+                remainingTime: document.getElementById('remainingTime')
+            };
+            
+            if (elements.avgProcessTime) elements.avgProcessTime.textContent = avgTime.toFixed(1) + 's';
+            if (elements.successRate) elements.successRate.textContent = successRate.toFixed(0) + '%';
+            if (elements.itemsPerMinute) elements.itemsPerMinute.textContent = Math.floor(itemsPerMinute);
+            
+            const totalCountEl = document.getElementById('totalCount');
+            const total = totalCountEl ? parseInt(totalCountEl.textContent) : 0;
+            const remaining = total - processingStats.processed;
+            const remainingMinutes = remaining / itemsPerMinute;
+            
+            if (elements.remainingTime) {
+                if (remainingMinutes < 1) {
+                    elements.remainingTime.textContent = '< 1 min';
+                } else {
+                    elements.remainingTime.textContent = Math.ceil(remainingMinutes) + ' min';
+                }
+            }
+        }
+
+        function updateElapsedTime() {
+            const elapsed = Date.now() - processingStats.startTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            const elapsedTimeEl = document.getElementById('elapsedTime');
+            if (elapsedTimeEl) {
+                elapsedTimeEl.textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        function completeProcessing() {
+            clearInterval(timeInterval);
+            
+            const statusText = document.getElementById('statusText');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            if (statusText) statusText.textContent = 'Processing complete!';
+            if (generateBtn) generateBtn.disabled = false;
+            
+            const summaryText = `Processed ${processingStats.processed} items with ${processingStats.success} successful and ${processingStats.failed} failed.`;
+            const summaryTextEl = document.getElementById('summaryText');
+            const completionSummary = document.getElementById('completionSummary');
+            
+            if (summaryTextEl) summaryTextEl.textContent = summaryText;
+            if (completionSummary) completionSummary.style.display = 'block';
+            
+            if (processingStats.errors.length > 0) {
+                const errorList = document.getElementById('errorList');
+                const errorSummary = document.getElementById('errorSummary');
+                
+                if (errorList) {
+                    errorList.innerHTML = processingStats.errors.slice(0, 5).map(err => 
+                        `<li>${err.item}: ${err.error}</li>`
+                    ).join('');
+                    if (processingStats.errors.length > 5) {
+                        errorList.innerHTML += `<li>... and ${processingStats.errors.length - 5} more errors</li>`;
+                    }
+                }
+                if (errorSummary) errorSummary.style.display = 'block';
+            }
+        }
+
+        function displayBatchResults(results) {
+            const tbody = document.getElementById('resultsBody');
+            if (tbody) {
+                results.forEach(item => {
+                    const row = createResultRow(item, 'success');
+                    tbody.insertAdjacentHTML('beforeend', row);
+                    setTimeout(() => {
+                        updateResultRow(`row-${item.id}`, item, true, 50);
+                    }, 100);
+                });
+            }
+            
+            const elements = {
+                processedCount: document.getElementById('processedCount'),
+                successCount: document.getElementById('successCount'),
+                mainProgress: document.getElementById('mainProgress')
+            };
+            
+            if (elements.processedCount) elements.processedCount.textContent = results.length;
+            if (elements.successCount) elements.successCount.textContent = results.length;
+            if (elements.mainProgress) elements.mainProgress.style.width = '100%';
+            
+            completeProcessing();
+        }
+
+        // Mock data generators
+        function generateMockGroupMembers(groupId, count) {
+            const types = ['Data Element', 'Indicator', 'Program Indicator'];
+            const members = [];
+            
+            for (let i = 0; i < count; i++) {
+                members.push({
+                    id: generateUID(),
+                    name: `${groupId} Item ${i + 1}`,
+                    type: types[Math.floor(Math.random() * types.length)]
+                });
+            }
+            
+            return members;
+        }
+
+        function generateMockBatchResults(count) {
+            return generateMockGroupMembers('BATCH', count);
+        }
+
+        function generateUID() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let uid = '';
+            for (let i = 0; i < 11; i++) {
+                uid += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return uid;
+        }
+
+        // Tab switching
+        function switchDictTab(tabName) {
+            const tabs = document.querySelectorAll('#dictionary-detail .tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.textContent.toLowerCase().includes(tabName.toLowerCase()) ||
+                    (tabName === 'metadata' && tab.textContent.includes('Metadata Info'))) {
+                    tab.classList.add('active');
+                }
+            });
+
+            const variablesTab = document.getElementById('variablesTab');
+            const versionsTab = document.getElementById('versionsTab');
+            const metadataTab = document.getElementById('metadataTab');
+            
+            if (variablesTab) variablesTab.style.display = tabName === 'variables' ? 'block' : 'none';
+            if (versionsTab) versionsTab.style.display = tabName === 'versions' ? 'block' : 'none';
+            if (metadataTab) metadataTab.style.display = tabName === 'metadata' ? 'block' : 'none';
+        }
+
+        function switchSqlTab(tabName) {
+            const tabs = document.querySelectorAll('#sql-views .tab');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                const tabText = tab.textContent.toLowerCase();
+                if ((tabName === 'available' && tabText.includes('available')) ||
+                    (tabName === 'create' && tabText.includes('create')) ||
+                    (tabName === 'guide' && tabText.includes('guide'))) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            const availableSqlTab = document.getElementById('availableSqlTab');
+            const createSqlTab = document.getElementById('createSqlTab');
+            const guideSqlTab = document.getElementById('guideSqlTab');
+            
+            if (availableSqlTab) availableSqlTab.style.display = tabName === 'available' ? 'block' : 'none';
+            if (createSqlTab) createSqlTab.style.display = tabName === 'create' ? 'block' : 'none';
+            if (guideSqlTab) guideSqlTab.style.display = tabName === 'guide' ? 'block' : 'none';
+        }
+
+        // Instance management
+        function switchInstance() {
+            const instance = document.getElementById('currentInstance');
+            if (instance && instance.value === 'new') {
+                showAddInstanceModal();
+            }
+        }
+
+        function showAddInstanceModal() {
+            const modal = document.getElementById('addInstanceModal');
+            if (modal) modal.classList.add('active');
+        }
+
+        function addInstance(event) {
+            event.preventDefault();
+            hideModal('addInstanceModal');
+            alert('Instance added successfully!');
+            showPage('instances');
+        }
+
+        // SQL View functions
+        function testSqlView(uid) {
+            alert(`Testing SQL View ${uid}...\n\nThis would execute the SQL view and show the first 10 rows of results.`);
+        }
+
+        function showSqlViewGuide() {
+            showPage('sql-views');
+            switchSqlTab('guide');
+        }
+
+        // API URL functions
+        function showApiUrl(uid) {
+            const instanceUrl = 'https://dev.dhis2.org/dhis';
+            const fullUrl = `${instanceUrl}/api/analytics?dimension=dx:${uid}&dimension=pe:2025Q1&dimension=ou:LEVEL-1`;
+            
+            const fullApiUrlEl = document.getElementById('fullApiUrl');
+            const apiDataElementEl = document.getElementById('apiDataElement');
+            const modal = document.getElementById('apiUrlModal');
+            
+            if (fullApiUrlEl) fullApiUrlEl.textContent = fullUrl;
+            if (apiDataElementEl) apiDataElementEl.textContent = uid;
+            if (modal) modal.classList.add('active');
+        }
+
+        function copyApiUrl() {
+            const apiUrl = document.getElementById('fullApiUrl');
+            if (apiUrl && navigator.clipboard) {
+                navigator.clipboard.writeText(apiUrl.textContent).then(() => {
+                    alert('API URL copied to clipboard!');
+                });
+            }
+        }
+
+        function testApiUrl() {
+            const apiUrl = document.getElementById('fullApiUrl');
+            if (apiUrl) {
+                window.open(apiUrl.textContent, '_blank');
+            }
+        }
+
+        // Utility functions
+        function viewGeneratedDictionary() {
+            alert('Dictionary saved! Redirecting to dictionary view...');
+            showPage('dictionaries');
+        }
+
+        function exportResults() {
+            alert('Exporting results as CSV...');
+        }
+
+        // Modal functions
+        function hideModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove('active');
+        }
+
+        function logout() {
+            isAuthenticated = false;
+            const navLinks = document.getElementById('navLinks');
+            const userMenu = document.getElementById('userMenu');
+            
+            if (navLinks) navLinks.style.display = 'none';
+            if (userMenu) userMenu.style.display = 'none';
+            showPage('home');
+        }
+
+        // Close modals on background click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
