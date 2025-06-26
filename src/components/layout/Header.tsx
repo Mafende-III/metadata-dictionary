@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, Transition } from '@headlessui/react';
 import { Session } from '@/types/auth';
+import InstanceSelector from './InstanceSelector';
 
 interface HeaderProps {
   session: Session | null;
@@ -79,7 +80,19 @@ export const Header = ({ session, onLogout }: HeaderProps) => {
           
           {/* User Menu - Only show when authenticated */}
           {session ? (
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            <div className="hidden sm:ml-6 sm:flex sm:items-center gap-4">
+              {/* Instance Selector */}
+              <InstanceSelector 
+                onInstanceChange={(instance) => {
+                  console.log('Instance changed to:', instance);
+                  // TODO: Implement instance switching logic
+                }}
+                onAddInstance={() => {
+                  console.log('Add new instance requested');
+                  // TODO: Implement add instance modal
+                }}
+              />
+              
               <Menu as="div" className="ml-3 relative">
                 <div>
                   <Menu.Button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -212,6 +225,20 @@ export const Header = ({ session, onLogout }: HeaderProps) => {
         
         {session && (
           <div className="pt-4 pb-3 border-t border-gray-200">
+            {/* Mobile Instance Selector */}
+            <div className="px-4 mb-4">
+              <InstanceSelector 
+                onInstanceChange={(instance) => {
+                  console.log('Instance changed to:', instance);
+                  // TODO: Implement instance switching logic
+                }}
+                onAddInstance={() => {
+                  console.log('Add new instance requested');
+                  // TODO: Implement add instance modal
+                }}
+              />
+            </div>
+            
             <div className="flex items-center px-4">
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-medium text-lg">
