@@ -19,6 +19,14 @@ interface EnhancedSqlViewTableProps {
   initialBatchSize?: number;
   maxRows?: number;
   autoLoad?: boolean;
+  groupId?: string;
+  processingMethod?: 'batch' | 'individual';
+  onStatsUpdate?: (stats: {
+    avgProcessTime: number;
+    successRate: number;
+    itemsPerMinute: number;
+    remainingTime: string;
+  }) => void;
 }
 
 interface BatchProgress {
@@ -49,7 +57,10 @@ export default function EnhancedSqlViewTable({
   sqlViewId, 
   initialBatchSize = 50,
   maxRows = 10000,
-  autoLoad = true 
+  autoLoad = true,
+  groupId,
+  processingMethod = 'batch',
+  onStatsUpdate
 }: EnhancedSqlViewTableProps) {
   // State management
   const [data, setData] = useState<any[]>([]);
@@ -74,6 +85,77 @@ export default function EnhancedSqlViewTable({
 
   // Authentication
   const { isAuthenticated, authToken, dhisBaseUrl } = useAuthStore();
+
+  // Individual processing for group items
+  const processIndividually = async (items: any[]) => {
+    if (!onStatsUpdate) return [];
+    
+    const results = [];
+    const startTime = Date.now();
+    let successCount = 0;
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const itemStartTime = Date.now();
+      
+      try {
+        // Process individual item through SQL view with variable
+        const response = await fetch(`/api/dhis2/proxy?path=/sqlViews/${sqlViewId}/data.json&var=dataElementId:${item.id}`, {
+          headers: {
+            'Authorization': `Basic ${authToken}`,
+            'x-dhis2-base-url': dhisBaseUrl,
+            'Accept': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          results.push({
+            ...data,
+            status: 'success',
+            processingTime: Date.now() - itemStartTime
+          });
+          successCount++;
+        } else {
+          results.push({
+            ...item,
+            status: 'error',
+            error: `HTTP ${response.status}`,
+            processingTime: Date.now() - itemStartTime
+          });
+        }
+      } catch (error) {
+        results.push({
+          ...item,
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+          processingTime: Date.now() - itemStartTime
+        });
+      }
+      
+      // Update stats
+      const processed = i + 1;
+      const elapsed = (Date.now() - startTime) / 1000;
+      const avgTime = elapsed / processed;
+      const successRate = (successCount / processed) * 100;
+      const itemsPerMinute = (processed / elapsed) * 60;
+      const remaining = Math.max(0, (items.length - processed) / (itemsPerMinute / 60));
+      
+      onStatsUpdate({
+        avgProcessTime: avgTime,
+        successRate,
+        itemsPerMinute,
+        remainingTime: remaining < 60 ? `${Math.round(remaining)}s` : `${Math.round(remaining / 60)}m`
+      });
+      
+      // Small delay to prevent overwhelming the server
+      if (i < items.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    return results;
+  };
 
   // Auto-detect column types
   const detectColumnType = (values: any[]): 'string' | 'number' | 'date' | 'boolean' => {
@@ -147,6 +229,55 @@ export default function EnhancedSqlViewTable({
     });
 
     try {
+      // Handle group-based processing
+      if (groupId && processingMethod === 'individual') {
+        console.log('🎯 Starting individual processing for group:', groupId);
+        
+        // First, fetch group members
+        const groupResponse = await fetch(`/api/dhis2/proxy?path=/dataElementGroups/${groupId}.json?fields=dataElements[id,name,displayName]`, {
+          headers: {
+            'Authorization': `Basic ${authToken}`,
+            'x-dhis2-base-url': dhisBaseUrl,
+            'Accept': 'application/json',
+          }
+        });
+        
+        if (!groupResponse.ok) {
+          throw new Error(`Failed to fetch group members: ${groupResponse.statusText}`);
+        }
+        
+        const groupData = await groupResponse.json();
+        const groupMembers = groupData.dataElements || [];
+        
+        console.log(`📋 Processing ${groupMembers.length} items individually from group`);
+        
+        // Process each member individually
+        const results = await processIndividually(groupMembers);
+        
+        // Flatten results and process data
+        const flatResults = results.filter(r => r.status === 'success').flatMap(r => r.rows || []);
+        const processedData = flatResults.length > 0 ? processData(flatResults) : [];
+        
+        setData(processedData);
+        setProgress({
+          current: groupMembers.length,
+          total: groupMembers.length,
+          percentage: 100,
+          loading: false,
+          completed: true
+        });
+        
+        setLoading(false);
+        return;
+      }
+
+      // Build SQL View URL with group filter if specified
+      let sqlViewUrl = `/sqlViews/${sqlViewId}/data.json`;
+      if (groupId && processingMethod === 'batch') {
+        sqlViewUrl += `?filter=dataElementGroupId:eq:${groupId}`;
+        console.log('🎯 Using group filter for batch processing:', groupId);
+      }
+
       console.log('🚀 Starting multi-page data fetch for SQL View:', sqlViewId);
 
       // Try the enhanced batch API first
@@ -195,7 +326,10 @@ export default function EnhancedSqlViewTable({
 
           try {
             // Use the proxy endpoint which is more reliable for multi-page fetching
-            const pageUrl = `/api/dhis2/proxy?path=/sqlViews/${sqlViewId}/data.json${currentPage > 1 ? `&page=${currentPage}` : ''}`;
+            let pageUrl = `/api/dhis2/proxy?path=${sqlViewUrl}`;
+            if (currentPage > 1) {
+              pageUrl += sqlViewUrl.includes('?') ? `&page=${currentPage}` : `?page=${currentPage}`;
+            }
             const response = await fetch(pageUrl, {
               headers: {
                 'Authorization': `Basic ${authToken}`,

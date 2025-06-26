@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MetadataTable, MetadataFilters } from '@/components/features/metadata';
+import { MetadataTable, MetadataFilters, MetadataGroupFilter } from '@/components/features/metadata';
+import { ProcessingStats, ProcessingQueue, QueueItem } from '@/components/features/processing';
 import { useAuthStore } from '@/lib/stores/authStore';
 import { useMetadata } from '../../../hooks/useMetadata';
 import { useFilters } from '../../../hooks/useFilters';
@@ -24,6 +25,18 @@ export default function DataElementsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [savedMetadata, setSavedMetadata] = useState<any[]>([]);
   const [testSqlViewId, setTestSqlViewId] = useState('w1JM5arbLNJ'); // Default data elements SQL view
+  
+  // Group processing state
+  const [selectedGroup, setSelectedGroup] = useState<string>('');
+  const [processingMethod, setProcessingMethod] = useState<'batch' | 'individual'>('batch');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingQueue, setProcessingQueue] = useState<QueueItem[]>([]);
+  const [processingStats, setProcessingStats] = useState({
+    avgProcessTime: 0,
+    successRate: 0,
+    itemsPerMinute: 0,
+    remainingTime: '--'
+  });
   
   // Initialize filters from URL search params
   const initialFilters = {
@@ -112,6 +125,23 @@ export default function DataElementsPage() {
     updateFilters(newFilters);
   };
   
+  // Handle group selection
+  const handleGroupSelect = (groupId: string, itemCount: number) => {
+    setSelectedGroup(groupId);
+    console.log(`Selected group: ${groupId} with ${itemCount} items`);
+  };
+
+  // Handle processing method change
+  const handleProcessingMethodChange = (method: 'batch' | 'individual') => {
+    setProcessingMethod(method);
+    console.log(`Processing method changed to: ${method}`);
+  };
+
+  // Update processing stats
+  const updateProcessingStats = (stats: typeof processingStats) => {
+    setProcessingStats(stats);
+  };
+
   // Handle export
   const handleExport = (format: ExportFormat, includeQuality: boolean) => {
     if (!metadata || metadata.length === 0) return;
@@ -248,11 +278,21 @@ export default function DataElementsPage() {
               </h2>
               <div className="bg-purple-50 border border-purple-200 rounded p-3 mb-4">
                 <p className="text-purple-800 text-sm mb-2">
-                  <strong>⚡ Advanced Features:</strong> Multi-page data fetching, real-time progress tracking, interactive filtering, and CSV export.
+                  <strong>⚡ Advanced Features:</strong> Group-based filtering, individual processing, real-time progress tracking, and timeout prevention.
                 </p>
                 <p className="text-purple-700 text-xs">
-                  <strong>📊 Capabilities:</strong> Automatically fetches ALL pages from DHIS2 API responses with smart column detection and batch processing.
+                  <strong>📊 Capabilities:</strong> Process large datasets efficiently with group filtering and prevent 504 timeout errors through individual item processing.
                 </p>
+              </div>
+              
+              {/* Group Filter Section */}
+              <div className="bg-gray-50 border border-gray-200 rounded p-4 mb-6">
+                <h3 className="font-medium text-gray-900 mb-4">Smart Group Filtering</h3>
+                <MetadataGroupFilter
+                  metadataType="dataElements"
+                  onGroupSelect={handleGroupSelect}
+                  onProcessingMethodChange={handleProcessingMethodChange}
+                />
               </div>
               
               {/* SQL View Configuration */}
@@ -283,6 +323,17 @@ export default function DataElementsPage() {
                 </div>
               </div>
 
+              {/* Processing Stats and Queue */}
+              {isProcessing && (
+                <div className="space-y-4">
+                  <ProcessingStats {...processingStats} />
+                  <ProcessingQueue 
+                    items={processingQueue}
+                    maxVisible={10}
+                  />
+                </div>
+              )}
+
               {/* Enhanced SQL View Table */}
               <div className="border border-gray-200 rounded-lg">
                 <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
@@ -290,12 +341,15 @@ export default function DataElementsPage() {
                     🚀 Enhanced Multi-Page Data Elements Analysis
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Advanced SQL view analysis with multi-page fetching, interactive filtering, and export capabilities
+                    Advanced SQL view analysis with group filtering, individual processing, and export capabilities
                   </p>
                 </div>
                 <div className="p-4">
                   <EnhancedSqlViewTable
                     sqlViewId={testSqlViewId}
+                    groupId={selectedGroup}
+                    processingMethod={processingMethod}
+                    onStatsUpdate={updateProcessingStats}
                     initialBatchSize={50}
                     maxRows={5000}
                     autoLoad={true}
