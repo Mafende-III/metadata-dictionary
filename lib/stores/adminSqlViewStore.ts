@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { SqlViewTemplate } from '../types/sqlView';
+import { SqlViewTemplate } from '../../types/sqlView';
 
 interface AdminSqlViewStore {
   templates: SqlViewTemplate[];

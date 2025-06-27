@@ -9,7 +9,7 @@ export const SqlViewTemplateEditor = lazy(() => import('./SqlViewTemplateEditor'
 export const SqlViewTemplateManager = lazy(() => import('./SqlViewTemplateManager'));
 
 // Lazy load metadata components
-export const MetadataTable = lazy(() => import('../metadata/MetadataTable'));
+export const MetadataTable = lazy(() => import('../metadata/MetadataTable').then(module => ({ default: module.MetadataTable })));
 
 // Loading fallback component for lazy-loaded components
 export const ComponentLoader = () => (

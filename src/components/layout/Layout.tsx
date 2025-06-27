@@ -1,9 +1,10 @@
 import { ReactNode, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Header } from './Header';
+import Header from './Header';
 import { Sidebar } from './Sidebar';
 import { Breadcrumbs } from './Breadcrumbs';
 import { Session } from '@/types/auth';
+import { SystemStatusIndicator } from '../shared/SystemStatusIndicator';
 
 interface LayoutProps {
   children: ReactNode;
@@ -67,6 +68,9 @@ export const Layout = ({
           {children}
         </main>
       </div>
+      
+      {/* System Status Indicator - appears on all pages */}
+      <SystemStatusIndicator />
     </div>
   );
 }; 

@@ -35,7 +35,7 @@ export default function QuickSqlViewSetup() {
       const result = await service.createSqlView(payload);
       
       // Configure the mapping in the store
-      setConfiguredView(templateId, result.uid, template.name);
+      setConfiguredView(templateId, result.uid || '', template.name);
 
       setResults(prev => ({
         ...prev,

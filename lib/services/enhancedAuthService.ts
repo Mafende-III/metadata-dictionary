@@ -54,13 +54,15 @@ export class EnhancedAuthService {
           // Create session
           const session: Session = {
             id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            userId: authResponse.user?.id || username,
             serverUrl: client['serverUrl'], // Access private property
             token: client['token'] || '',
             username: authResponse.user?.username || username,
             displayName: authResponse.user?.name || username,
             authorities: authResponse.user?.authorities || [],
             createdAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+            lastUsed: new Date().toISOString()
           };
           
           // Store session

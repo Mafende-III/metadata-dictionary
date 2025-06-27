@@ -48,8 +48,22 @@ export class SqlViewApiService {
       let headers: string[] = [];
       
       if (response.data) {
+        // DHIS2 ListGrid format (most common for SQL views)
+        if (response.data.listGrid) {
+          const listGrid = response.data.listGrid;
+          data = listGrid.rows || [];
+          
+          // Extract headers from listGrid.headers array
+          if (listGrid.headers && Array.isArray(listGrid.headers)) {
+            headers = listGrid.headers.map((header: any) => header.name || header.column || '');
+          }
+          
+          console.log(`📊 DHIS2 ListGrid format: ${data.length} rows, ${headers.length} columns`);
+          console.log(`📋 Title: ${listGrid.title || 'No title'}`);
+          console.log(`📝 Headers: ${headers.join(', ')}`);
+        }
         // DHIS2 standard format: { rows: [], headers: [], width: N, height: N }
-        if (Array.isArray(response.data.rows)) {
+        else if (Array.isArray(response.data.rows)) {
           data = response.data.rows;
           headers = response.data.headers || [];
           console.log(`📊 Standard DHIS2 format: ${data.length} rows, ${headers.length} columns`);
@@ -68,7 +82,12 @@ export class SqlViewApiService {
         }
         // Empty or unexpected format
         else {
-          console.warn('⚠️ Unexpected response format:', response.data);
+          console.warn('⚠️ Unexpected response format:', {
+            hasListGrid: !!response.data.listGrid,
+            hasRows: !!response.data.rows,
+            isArray: Array.isArray(response.data),
+            keys: Object.keys(response.data)
+          });
           data = [];
           headers = [];
         }
@@ -312,7 +331,17 @@ export class SqlViewApiService {
           let batchHeaders: string[] = [];
 
           // Handle DHIS2 response formats
-          if (Array.isArray(response.data.rows)) {
+          if (response.data.listGrid) {
+            const listGrid = response.data.listGrid;
+            batchData = listGrid.rows || [];
+            
+            // Extract headers from listGrid.headers array
+            if (listGrid.headers && Array.isArray(listGrid.headers)) {
+              batchHeaders = listGrid.headers.map((header: any) => header.name || header.column || '');
+            }
+          }
+          // DHIS2 standard format
+          else if (Array.isArray(response.data.rows)) {
             batchData = response.data.rows;
             batchHeaders = response.data.headers || [];
           } else if (Array.isArray(response.data)) {
@@ -399,7 +428,7 @@ export class SqlViewApiService {
       const metadata = await this.getSqlViewMetadata(sqlViewId);
       
       // Try to execute if it's a materialized view
-      if (metadata && metadata.type === 'MATERIALIZED_VIEW') {
+      if (metadata && (metadata as any).type === 'MATERIALIZED_VIEW') {
         try {
           await this.client.axiosInstance.post(`/sqlViews/${sqlViewId}/execute`);
         } catch (execError) {

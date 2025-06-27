@@ -62,12 +62,22 @@ export class DHIS2Client {
       url = url.slice(0, -1);
     }
     
-    // Add /api if not present
-    if (!url.endsWith('/api')) {
+    // Handle different URL patterns for DHIS2 instances
+    if (url.includes('/api')) {
+      // URL already contains /api, use as is
+      console.log('🔗 Using provided API URL:', url);
+      return url;
+    } else if (url.includes('/dhis')) {
+      // URL contains dhis path, add /api
       url = `${url}/api`;
+      console.log('🔗 Added /api to dhis URL:', url);
+      return url;
+    } else {
+      // Standard case, add /api
+      url = `${url}/api`;
+      console.log('🔗 Added /api to standard URL:', url);
+      return url;
     }
-    
-    return url;
   }
   
   // Set credentials for authentication
@@ -75,14 +85,47 @@ export class DHIS2Client {
     this.credentials = { username, password };
     this.token = Buffer.from(`${username}:${password}`).toString('base64');
     
+    console.log('🔐 Setting credentials for user:', username);
+    console.log('🔗 Using base URL:', this.serverUrl);
+    
     // Update axios instance with new token
     this.axiosInstance = axios.create({
       baseURL: this.serverUrl,
+      timeout: 30000, // 30 second timeout
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Basic ${this.token}`
       }
     });
+    
+    // Add response interceptor for better error handling
+    this.axiosInstance.interceptors.response.use(
+      response => response,
+      error => {
+        console.error('❌ DHIS2 API Error:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          url: error.config?.url,
+          message: error.message
+        });
+        
+        let dhis2Error: DHIS2Error = {
+          httpStatusCode: error.response?.status || 500,
+          message: error.message,
+          status: 'ERROR',
+          httpStatus: error.response?.statusText || 'Unknown Error'
+        };
+        
+        if (error.response?.data) {
+          dhis2Error = {
+            ...dhis2Error,
+            ...error.response.data
+          };
+        }
+        
+        return Promise.reject(dhis2Error);
+      }
+    );
   }
   
   // Set token directly
@@ -133,25 +176,53 @@ export class DHIS2Client {
     }
     
     try {
-      // Call the /system/info endpoint
+      console.log('🔍 Testing connection with URL:', this.serverUrl);
+      
+      // Call the /system/info endpoint to get version and system information
       const response = await this.axiosInstance.get('/system/info');
+      
+      console.log('✅ System info response:', {
+        version: response.data.version,
+        instanceName: response.data.instanceName,
+        serverDate: response.data.serverDate
+      });
       
       return {
         connected: true,
         version: response.data.version,
-        name: response.data.instanceName,
+        name: response.data.instanceName || response.data.systemName,
         serverInfo: {
           version: response.data.version,
           revision: response.data.revision,
           build: response.data.buildTime,
-          serverDate: response.data.serverDate
+          serverDate: response.data.serverDate,
+          instanceName: response.data.instanceName,
+          systemName: response.data.systemName
         }
       };
     } catch (error: any) {
-      return {
-        connected: false,
-        error: error.message || 'Connection failed'
-      };
+      console.error('❌ Connection test failed:', error);
+      
+      // Try alternative endpoints if main fails
+      try {
+        console.log('🔄 Trying alternative system endpoint...');
+        const altResponse = await this.axiosInstance.get('/me');
+        
+        return {
+          connected: true,
+          version: 'Unknown (detected via /me endpoint)',
+          name: altResponse.data.displayName || 'DHIS2 Instance',
+          serverInfo: {
+            version: 'Unknown',
+            username: altResponse.data.username || altResponse.data.userCredentials?.username
+          }
+        };
+      } catch (altError: any) {
+        return {
+          connected: false,
+          error: error.message || 'Connection failed'
+        };
+      }
     }
   }
   
@@ -227,10 +298,10 @@ export class DHIS2Client {
   // Get SQL views
   async getSQLViews(filters?: MetadataFilter): Promise<DHIS2Response<SQLView[]>> {
     const params: Record<string, any> = {
-      fields: '*',
+      fields: 'id,name,displayName,type,description,sqlQuery,cacheStrategy',
       paging: true,
       page: filters?.page || 1,
-      pageSize: filters?.pageSize || 50
+      pageSize: filters?.pageSize || 100
     };
     
     // Add search if provided
@@ -243,7 +314,125 @@ export class DHIS2Client {
       params.order = `${filters.sortBy}:${filters.sortDirection || 'asc'}`;
     }
     
-    const response = await this.axiosInstance.get('/sqlViews', { params });
+    try {
+      console.log('🔍 Fetching SQL views with params:', params);
+      console.log('🔗 Full URL:', this.serverUrl + '/sqlViews');
+      
+      const response = await this.axiosInstance.get('/sqlViews', { params });
+      
+      console.log('✅ SQL views response:', {
+        total: response.data.pager?.total || response.data.sqlViews?.length || 0,
+        pageSize: response.data.pager?.pageSize,
+        page: response.data.pager?.page,
+        isArray: Array.isArray(response.data),
+        dataType: typeof response.data
+      });
+      
+      // Handle both response formats
+      if (Array.isArray(response.data)) {
+        // Direct array response - convert to expected format
+        return {
+          sqlViews: response.data,
+          pager: {
+            page: 1,
+            pageSize: response.data.length,
+            total: response.data.length,
+            pageCount: 1
+          }
+        };
+      } else {
+        // Standard object response
+        return response.data;
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching SQL views:', error);
+      console.error('❌ Request details:', {
+        url: this.serverUrl + '/sqlViews',
+        params,
+        status: error.httpStatusCode || error.status
+      });
+      
+      throw error;
+    }
+  }
+  
+  // Get data element groups
+  async getDataElementGroups(includeItemCounts: boolean = true): Promise<any> {
+    const fields = includeItemCounts 
+      ? 'id,name,displayName,dataElements~size'
+      : 'id,name,displayName';
+    
+    const response = await this.axiosInstance.get('/dataElementGroups', {
+      params: {
+        fields,
+        pageSize: 100,
+        order: 'name:asc'
+      }
+    });
+    
+    return response.data;
+  }
+
+  // Get indicator groups
+  async getIndicatorGroups(includeItemCounts: boolean = true): Promise<any> {
+    const fields = includeItemCounts 
+      ? 'id,name,displayName,indicators~size'
+      : 'id,name,displayName';
+    
+    const response = await this.axiosInstance.get('/indicatorGroups', {
+      params: {
+        fields,
+        pageSize: 100,
+        order: 'name:asc'
+      }
+    });
+    
+    return response.data;
+  }
+
+  // Get programs (for program indicators)
+  async getPrograms(includeItemCounts: boolean = true): Promise<any> {
+    const fields = includeItemCounts 
+      ? 'id,name,displayName,programIndicators~size'
+      : 'id,name,displayName';
+    
+    const response = await this.axiosInstance.get('/programs', {
+      params: {
+        fields,
+        pageSize: 100,
+        order: 'name:asc'
+      }
+    });
+    
+    return response.data;
+  }
+
+  // Get metadata group with items
+  async getMetadataGroupWithItems(groupType: string, groupId: string): Promise<any> {
+    let endpoint = '';
+    let itemsField = '';
+    
+    switch (groupType) {
+      case 'dataElements':
+        endpoint = `/dataElementGroups/${groupId}`;
+        itemsField = 'dataElements[id,name,displayName]';
+        break;
+      case 'indicators':
+        endpoint = `/indicatorGroups/${groupId}`;
+        itemsField = 'indicators[id,name,displayName]';
+        break;
+      case 'programIndicators':
+        endpoint = `/programs/${groupId}`;
+        itemsField = 'programIndicators[id,name,displayName]';
+        break;
+      default:
+        throw new Error(`Unsupported group type: ${groupType}`);
+    }
+
+    const response = await this.axiosInstance.get(endpoint, {
+      params: { fields: `id,name,displayName,${itemsField}` }
+    });
+    
     return response.data;
   }
   

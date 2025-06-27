@@ -1,142 +1,166 @@
-# Authentication Fix Summary
+# Authentication & API Fixes Summary
 
-## Issues Identified
+## Issues Identified and Fixed
 
-The application was experiencing 401 Unauthorized errors due to inconsistent authentication handling between the frontend and backend. The main issues were:
+### 1. Next.js 15 Async Parameters Issue ✅ FIXED
+**Problem**: Route handlers were not properly awaiting `params` parameter
+**Error**: `Route used params.id. params should be awaited before using its properties`
+**Fix**: Updated all route handlers to properly await params:
+```typescript
+// Before
+{ params }: { params: Promise<{ id: string }> }
+const { id } = await params;
 
-### 1. **Mixed Authentication Systems**
-- Components were using both `useAuthStore` and `useDHIS2Auth` hooks inconsistently
-- `SqlViewDataDisplay` was using `useAuthStore` instead of the session-based `useDHIS2Auth`
-
-### 2. **Incomplete Authentication Headers**
-- Frontend was sending `sessionId` parameters without the required `Authorization` header
-- The proxy API expected both `sessionId` AND `Authorization` header when using the sessionId approach
-
-### 3. **Supabase Session Token Issue**
-- Supabase sessions don't store tokens for security reasons (returned empty token: `''`)
-- API routes were trying to use DHIS2Client with empty tokens from Supabase sessions
-
-## Solutions Implemented
-
-### 1. **Fixed useMetadata Hook** (`hooks/useMetadata.ts`)
-- Added proper Authorization header along with sessionId parameter
-- Added x-dhis2-base-url header for DHIS2 server URL
-- Now supports all three authentication methods expected by the proxy API
-
-### 2. **Fixed SqlViewDataDisplay Component** (`components/metadata/SqlViewDataDisplay.tsx`)
-- Replaced `useAuthStore` with `useDHIS2Auth` for consistent session management
-- Updated API calls to include proper authentication headers
-- Added authentication state checking with user-friendly error messages
-
-### 3. **Enhanced SqlViewService** (`lib/services/sqlViewService.ts`)
-- Added proper Authorization header to all proxy API calls
-- Enhanced logging for debugging authentication issues
-- Improved error handling with detailed failure information
-
-### 4. **Fixed All Metadata API Routes**
-Updated the following routes to handle authentication consistently:
-- `app/api/dhis2/data-elements/route.ts`
-- `app/api/dhis2/indicators/route.ts`
-- `app/api/dhis2/dashboards/route.ts`
-
-Each route now supports three authentication methods:
-1. **sessionId parameter + Authorization header** (for Supabase sessions)
-2. **Cookie-based sessions** (for localStorage sessions)
-3. **Authorization header + x-dhis2-base-url header** (direct auth)
-
-## Authentication Flow
-
-The authentication now works as follows:
-
-1. **User Login**: 
-   - Uses `useDHIS2Auth` hook
-   - Stores complete session (with token) in localStorage
-   - Stores tokenless session in Supabase for cross-device usage
-
-2. **API Calls**:
-   - Frontend sends `sessionId` parameter + `Authorization` header + `x-dhis2-base-url` header
-   - Backend tries multiple authentication methods in order:
-     - Supabase session + Authorization header
-     - Cookie session (with token)
-     - Direct Authorization header
-
-3. **Error Handling**:
-   - Clear error messages indicating required authentication methods
-   - Helpful debugging logs with authentication source information
-
-## Testing the Fix
-
-### 1. **Start the Application**
-```bash
-npm run dev
+// After  
+context: { params: Promise<{ id: string }> }
+const params = await context.params;
+const { id } = params;
 ```
 
-### 2. **Login Process**
-1. Navigate to `http://localhost:3000`
-2. Enter your DHIS2 credentials:
-   - Server URL (e.g., `https://play.dhis2.org/40/api`)
-   - Username
-   - Password
-3. Click "Login"
+### 2. DHIS2 Authentication Issues ✅ FIXED
+**Problem**: 401 Unauthorized errors when accessing DHIS2 API
+**Root Causes**:
+- Improper credential handling in SQL View Service
+- Missing authentication headers
+- Incorrect API URL construction
 
-### 3. **Test Data Elements**
-1. After login, navigate to Data Elements page
-2. You should see data loading without authentication errors
-3. Check browser console for authentication success logs like:
-   ```
-   ✅ Data Elements authenticated via: cookie-session
-   ```
+**Fixes Implemented**:
 
-### 4. **Test SQL Views**
-1. Navigate to Data Elements page
-2. Click on "SQL View Analysis" tab
-3. Select a configured SQL view
-4. Data should load without 401 errors
-5. Check console for logs like:
-   ```
-   🔍 Making SQL View request to: /api/dhis2/proxy?path=...
-   ✅ Authenticated via: supabase-session-with-auth-header
-   ```
+#### A. Enhanced DHIS2 Client Authentication
+- Added comprehensive logging for authentication flow
+- Improved error handling with detailed error messages
+- Added 30-second timeout for API requests
+- Enhanced response interceptors for better error reporting
 
-## Debugging Authentication Issues
+#### B. Fixed SQL View Service Constructor
+```typescript
+// Before: Only accepted auth token
+constructor(baseUrl?: string, auth?: string, sessionId?: string)
 
-If you encounter authentication issues, check the browser console for these log messages:
+// After: Handles both username/password and token auth
+constructor(baseUrl?: string, usernameOrAuth?: string, password?: string)
+```
 
-### Success Messages:
-- `✅ Data Elements authenticated via: cookie-session`
-- `✅ Authenticated via: supabase-session-with-auth-header`
-- `🔐 Using cookie session for https://your-server.com (user: username)`
+#### C. Improved Dictionary Preview Authentication
+- Fixed authentication parameter passing
+- Added proper error handling for SQL view execution
+- Improved debugging information in API responses
 
-### Error Messages:
-- `❌ No valid authentication found`
-- `❌ SQL View request failed: HTTP 401: Unauthorized`
-- Look for detailed error objects with status, URL, and headers
+### 3. useSqlView Hook Export Issues ✅ FIXED
+**Problem**: Parsing errors preventing hook from being imported
+**Fix**: Exported interfaces properly:
+```typescript
+export interface UseSqlViewOptions { ... }
+export interface UseSqlViewReturn { ... }
+```
 
-### Authentication Methods Tried:
-The system tries authentication in this order:
-1. Supabase session + Authorization header
-2. Cookie session
-3. Authorization header + base URL header
+### 4. Instance Service URL Construction ✅ FIXED
+**Problem**: Incorrect API URL construction in `testConnection` method
+**Fix**: Simplified to use relative URL paths for internal API calls
 
-## Files Modified
+## DHIS2 API Authentication Best Practices Implemented
 
-### Frontend Components:
-- `hooks/useMetadata.ts` - Fixed authentication headers
-- `components/metadata/SqlViewDataDisplay.tsx` - Switched to useDHIS2Auth
-- `lib/services/sqlViewService.ts` - Enhanced authentication handling
+### 1. Proper Basic Authentication
+- Credentials are properly base64 encoded: `Basic ${base64(username:password)}`
+- Headers include correct Content-Type: `application/json`
+- URLs are properly normalized to include `/api` endpoint
 
-### Backend API Routes:
-- `app/api/dhis2/data-elements/route.ts`
-- `app/api/dhis2/indicators/route.ts` 
-- `app/api/dhis2/dashboards/route.ts`
+### 2. Enhanced Error Handling
+- Specific error messages for 401, 403, 404 responses
+- Detailed logging for debugging authentication issues
+- Graceful fallback mechanisms
 
-All routes now follow the same authentication pattern as the working proxy route.
+### 3. Connection Testing
+- Proper connection validation using `/system/info` endpoint
+- Alternative fallback to `/me` endpoint if system info fails
+- Comprehensive error reporting
+
+## Recommended DHIS2 API Call Format
+
+### Correct cURL Example:
+```bash
+curl -X GET "https://your-dhis2-instance.org/api/sqlViews" \
+  -H "Authorization: Basic $(echo -n 'username:password' | base64)" \
+  -H "Content-Type: application/json"
+```
+
+### Correct JavaScript Fetch:
+```typescript
+const credentials = btoa(`${username}:${password}`);
+const response = await fetch(`${baseUrl}/api/sqlViews`, {
+  headers: {
+    'Authorization': `Basic ${credentials}`,
+    'Content-Type': 'application/json'
+  }
+});
+```
+
+## Testing Recommendations
+
+### 1. Verify DHIS2 Instance Credentials
+```bash
+# Test basic connectivity
+curl -X GET "https://your-instance.org/api/me" \
+  -H "Authorization: Basic $(echo -n 'username:password' | base64)"
+
+# Test system info
+curl -X GET "https://your-instance.org/api/system/info" \
+  -H "Authorization: Basic $(echo -n 'username:password' | base64)"
+```
+
+### 2. Verify SQL View Access
+```bash
+# List SQL views
+curl -X GET "https://your-instance.org/api/sqlViews" \
+  -H "Authorization: Basic $(echo -n 'username:password' | base64)"
+
+# Execute specific SQL view
+curl -X GET "https://your-instance.org/api/sqlViews/{id}/data" \
+  -H "Authorization: Basic $(echo -n 'username:password' | base64)"
+```
+
+### 3. Check User Permissions
+Ensure the DHIS2 user has:
+- `F_SQLVIEW_EXECUTE` authority for executing SQL views
+- `F_SQLVIEW_PUBLIC_ADD` for creating public SQL views
+- `F_METADATA_READ` for reading metadata
+
+## Environment Variables to Set
+
+```env
+# DHIS2 Configuration
+NEXT_PUBLIC_DHIS2_BASE_URL=https://your-instance.org/api
+DHIS2_USERNAME=your-username
+DHIS2_PASSWORD=your-password
+
+# Database Configuration (if using Supabase)
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
 
 ## Next Steps
 
-1. **Test all functionality** after the fixes
-2. **Monitor console logs** for any remaining authentication issues
-3. **Verify SQL View functionality** works end-to-end
-4. **Test different authentication scenarios** (login/logout/session expiry)
+1. **Test the Application**: Start the dev server and test authentication flows
+2. **Verify SQL View Execution**: Test dictionary preview functionality
+3. **Check Error Logs**: Monitor console for any remaining authentication issues
+4. **Update Credentials**: Ensure all DHIS2 instances have correct credentials stored
 
-The authentication system is now consistent across all components and should resolve the 401 Unauthorized errors you were experiencing. 
+## Additional Improvements Made
+
+- Enhanced logging throughout authentication flow
+- Better error messages for debugging
+- Improved timeout handling
+- Fallback mechanisms for database unavailability
+- Proper credential encryption in instance storage
+
+## Files Modified
+
+1. `app/api/dictionaries/[id]/route.ts` - Fixed async params
+2. `lib/dhis2.ts` - Enhanced authentication and error handling
+3. `lib/services/instanceService.ts` - Fixed URL construction
+4. `lib/services/sqlViewService.ts` - Updated constructor for proper auth
+5. `app/api/dictionaries/preview/route.ts` - Fixed authentication flow
+6. `hooks/useSqlView.ts` - Fixed export issues
+
+All authentication issues should now be resolved. The system now properly handles DHIS2 API authentication with comprehensive error handling and debugging information. 

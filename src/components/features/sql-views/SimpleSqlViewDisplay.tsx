@@ -128,7 +128,7 @@ export default function SimpleSqlViewDisplay({ templateId, sqlViewId }: SimpleSq
         
         if (result.data.length > 0) {
           columnNames = Object.keys(result.data[0]);
-          processedData = result.data.map((item, index) => ({ ...item, _rowIndex: index }));
+          processedData = result.data.map((item: any, index: number) => ({ ...item, _rowIndex: index }));
         }
       }
       else {

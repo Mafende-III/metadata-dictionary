@@ -7,7 +7,7 @@ import { useAuthStore } from '@/lib/stores/authStore';
 import { useMetadata } from '../../../hooks/useMetadata';
 import { useFilters } from '../../../hooks/useFilters';
 import { ExportButton } from '@/components/shared/ExportButton';
-import { ExportFormat, ExportService } from '../../../lib/export';
+import { ExportFormat, ExportService, ExportOptions } from '../../../lib/export';
 import { METADATA_TYPES } from '../../../lib/constants';
 import { SqlViewDataDisplay } from '@/components/features/sql-views';
 import EnhancedSqlViewTable from '@/src/components/features/sql-views/EnhancedSqlViewTable';
@@ -108,18 +108,18 @@ export default function DashboardsPage() {
   };
 
   // Handle export
-  const handleExport = (format: ExportFormat, includeQuality: boolean) => {
+  const handleExport = (format: ExportFormat, options: ExportOptions) => {
     if (!metadata || metadata.length === 0) return;
     
     const metadataItems = metadata.map(item => item.metadata);
-    const qualityItems = includeQuality ? metadata.map(item => item.quality) : undefined;
+    const qualityItems = options.includeQuality ? metadata.map(item => item.quality) : undefined;
     
     const exportContent = ExportService.exportMetadataList(
       metadataItems,
       qualityItems,
       {
         format,
-        includeQuality,
+        includeQuality: options.includeQuality,
         filename: `dashboards_export_${new Date().toISOString().split('T')[0]}`
       }
     );

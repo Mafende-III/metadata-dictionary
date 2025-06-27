@@ -4,13 +4,13 @@ import { SqlViewService, SqlViewExecutionOptions, SqlViewExecutionResult } from 
 import { SqlViewCacheEntry, useSqlViewCacheStore } from '../lib/stores/sqlViewCacheStore';
 import { useAuthStore } from '../lib/stores/authStore';
 
-interface UseSqlViewOptions {
+export interface UseSqlViewOptions {
   sqlViewId: string;
   autoExecute?: boolean;
   defaultOptions?: SqlViewExecutionOptions;
 }
 
-interface UseSqlViewReturn {
+export interface UseSqlViewReturn {
   // State
   data: Record<string, unknown>[];
   headers: string[];
@@ -29,6 +29,7 @@ interface UseSqlViewReturn {
   exportData: (format: 'csv' | 'json') => void;
   clearError: () => void;
   refresh: () => Promise<void>;
+  cancel: () => void;
 }
 
 export function useSqlView({ 
@@ -41,6 +42,7 @@ export function useSqlView({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SqlViewExecutionResult['metadata'] | null>(null);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   
   const { isAuthenticated, dhisBaseUrl, authToken } = useAuthStore();
   const { getEntriesForView, removeEntry } = useSqlViewCacheStore();
@@ -56,25 +58,51 @@ export function useSqlView({
   
   // Execute SQL view
   const execute = useCallback(async (options: SqlViewExecutionOptions = {}) => {
+    // Cancel any existing request
+    if (abortController) {
+      abortController.abort();
+    }
+
+    // Create new abort controller for this request
+    const newAbortController = new AbortController();
+    setAbortController(newAbortController);
+    
     setLoading(true);
     setError(null);
     
     try {
       const service = createService();
       const mergedOptions = { ...defaultOptions, ...options };
+      
+      // Check if the request was aborted before starting
+      if (newAbortController.signal.aborted) {
+        throw new Error('Request was cancelled');
+      }
+      
       const result = await service.executeView(sqlViewId, mergedOptions);
+      
+      // Check if the request was aborted before setting results
+      if (newAbortController.signal.aborted) {
+        throw new Error('Request was cancelled');
+      }
       
       setData(result.data as Record<string, unknown>[]);
       setHeaders(result.headers);
       setMetadata(result.metadata);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(errorMessage);
-      console.error('SQL View execution error:', err);
+      // Don't set error if the request was cancelled
+      if (err instanceof Error && err.message === 'Request was cancelled') {
+        console.log('🛑 SQL View request was cancelled');
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(errorMessage);
+        console.error('SQL View execution error:', err);
+      }
     } finally {
       setLoading(false);
+      setAbortController(null);
     }
-  }, [sqlViewId, defaultOptions, createService]);
+  }, [sqlViewId, defaultOptions, createService, abortController]);
   
   // Save current data to cache
   const saveToCache = useCallback(async (name: string, userNotes?: string): Promise<string | null> => {
@@ -179,6 +207,16 @@ export function useSqlView({
     setError(null);
   }, []);
   
+  // Cancel ongoing execution
+  const cancel = useCallback(() => {
+    if (abortController) {
+      console.log('🛑 Cancelling SQL View execution');
+      abortController.abort();
+      setAbortController(null);
+      setLoading(false);
+    }
+  }, [abortController]);
+
   // Refresh - re-execute with cache disabled
   const refresh = useCallback(async () => {
     await execute({ ...defaultOptions, useCache: false });
@@ -207,6 +245,7 @@ export function useSqlView({
     deleteFromCache,
     exportData,
     clearError,
-    refresh
+    refresh,
+    cancel
   };
 }

@@ -2,11 +2,13 @@
 
 import { Table } from '@/components/ui/Table';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { 
   CheckCircleIcon, 
   XCircleIcon, 
   ClockIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  StopIcon
 } from '@heroicons/react/24/outline';
 
 export interface QueueItem {
@@ -22,10 +24,18 @@ export interface QueueItem {
 interface ProcessingQueueProps {
   items: QueueItem[];
   maxVisible?: number;
+  onTerminate?: () => void;
+  isProcessing?: boolean;
 }
 
-export default function ProcessingQueue({ items, maxVisible = 10 }: ProcessingQueueProps) {
+export default function ProcessingQueue({ 
+  items, 
+  maxVisible = 10, 
+  onTerminate,
+  isProcessing = false 
+}: ProcessingQueueProps) {
   const visibleItems = items.slice(0, maxVisible);
+  const hasActiveProcessing = items.some(item => item.status === 'processing') || isProcessing;
   
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -64,7 +74,20 @@ export default function ProcessingQueue({ items, maxVisible = 10 }: ProcessingQu
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Processing Queue & Results</h3>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Processing Queue & Results</h3>
+        {hasActiveProcessing && onTerminate && (
+          <Button
+            onClick={onTerminate}
+            variant="outline"
+            size="sm"
+            className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300 flex items-center space-x-2"
+          >
+            <StopIcon className="h-4 w-4" />
+            <span>Terminate</span>
+          </Button>
+        )}
+      </div>
       <div className="border rounded-lg overflow-hidden">
         <Table className="w-full">
           <Table.Head>

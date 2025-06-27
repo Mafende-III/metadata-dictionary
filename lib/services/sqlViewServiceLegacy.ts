@@ -24,6 +24,9 @@ export interface SqlViewExecutionOptions {
   useCache?: boolean;
   cacheExpiry?: number; // minutes
   cacheName?: string;
+  page?: number;
+  pageSize?: number;
+  maxRows?: number;
 }
 
 export interface SqlViewExecutionResult {

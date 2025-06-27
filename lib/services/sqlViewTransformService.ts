@@ -223,8 +223,8 @@ export class SqlViewTransformService {
     const columns = headers || Object.keys(data[0]);
     const excelData = [columns]; // Header row
     
-    data.forEach(row => {
-      const rowData = columns.map(column => row[column]);
+    data.forEach((row: any) => {
+      const rowData = columns.map(column => String(row[column] || ''));
       excelData.push(rowData);
     });
 

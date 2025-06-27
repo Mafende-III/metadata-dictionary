@@ -66,11 +66,15 @@ export default function SqlViewDataDisplay({
     }
   });
 
-  // Use effect to fetch data when templateId changes
+  // Use effect to fetch metadata when templateId changes (but not data until user interaction)
   useEffect(() => {
     if (selectedTemplateId && actualSqlViewUid && isAuthenticated && authToken) {
       fetchSqlViewMetadata(actualSqlViewUid);
-      fetchSqlViewData(selectedTemplateId);
+      // Only fetch data automatically if this is programmatic (templateId prop provided)
+      // For user-selected templates, wait for explicit execution
+      if (templateId && templateId === selectedTemplateId) {
+        fetchSqlViewData(selectedTemplateId);
+      }
     }
   }, [selectedTemplateId, actualSqlViewUid, isAuthenticated, authToken]);
 
@@ -139,7 +143,7 @@ export default function SqlViewDataDisplay({
   };
 
   // Function to fetch data from SQL view
-  const fetchSqlViewData = async (tid: string) => {
+  const fetchSqlViewData = async (tid: string, options: { skipIfEmpty?: boolean } = {}) => {
     if (!tid || !actualSqlViewUid) return;
 
     try {
@@ -147,8 +151,9 @@ export default function SqlViewDataDisplay({
       const parameters: Record<string, string> = { ...sqlViewParameters };
       const sqlFilters: Record<string, string> = {};
       
+      // Only apply filters that have values
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) {
+        if (value && value.toString().trim() !== '') {
           // Determine if this should be a parameter or filter
           // Parameters are typically for variable substitution
           // Filters are for result filtering
@@ -159,6 +164,17 @@ export default function SqlViewDataDisplay({
           }
         }
       });
+
+      // If skipIfEmpty is true and we have no parameters or filters, don't make the call
+      if (options.skipIfEmpty && 
+          Object.keys(parameters).length === 0 && 
+          Object.keys(sqlFilters).length === 0 &&
+          Object.keys(sqlViewParameters).length === 0) {
+        console.log('🚫 Skipping SQL view execution - no parameters or filters provided');
+        return;
+      }
+
+      console.log('🔄 Executing SQL view with:', { parameters, filters: sqlFilters });
 
       await execute({
         parameters,
@@ -174,7 +190,9 @@ export default function SqlViewDataDisplay({
   // Handle filter changes
   const handleFilterChange = (newFilters: Record<string, any>) => {
     setFilters(newFilters);
-    if (selectedTemplateId && actualSqlViewUid) {
+    // Only fetch data if filters have actual values or are being reset
+    const hasFilters = Object.values(newFilters).some(value => value && value.toString().trim() !== '');
+    if (selectedTemplateId && actualSqlViewUid && (hasFilters || Object.keys(newFilters).length === 0)) {
       fetchSqlViewData(selectedTemplateId);
     }
   };
@@ -182,7 +200,9 @@ export default function SqlViewDataDisplay({
   // Handle parameter changes
   const handleParametersChange = (newParameters: Record<string, string>) => {
     setSqlViewParameters(newParameters);
-    if (selectedTemplateId && actualSqlViewUid) {
+    // Only fetch data if parameters have actual values
+    const hasParameters = Object.values(newParameters).some(value => value && value.toString().trim() !== '');
+    if (selectedTemplateId && actualSqlViewUid && hasParameters) {
       fetchSqlViewData(selectedTemplateId);
     }
   };
@@ -331,11 +351,32 @@ export default function SqlViewDataDisplay({
           </button>
           
           <button
-            onClick={() => selectedTemplateId && fetchSqlViewData(selectedTemplateId)}
-            disabled={loading || !selectedTemplateId || !actualSqlViewUid}
-            className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 disabled:bg-gray-300"
+            onClick={() => {
+              if (loading) {
+                console.log('🛑 Attempting to terminate SQL view execution');
+                // Force stop loading state and clear any errors
+                clearError();
+                // Note: This is a UI-level termination. The actual request may continue in background.
+                window.location.reload(); // As last resort for stuck operations
+              } else {
+                selectedTemplateId && fetchSqlViewData(selectedTemplateId);
+              }
+            }}
+            disabled={!selectedTemplateId || !actualSqlViewUid}
+            className={`px-3 py-1 rounded text-sm flex items-center space-x-1 ${
+              loading 
+                ? 'bg-red-500 text-white hover:bg-red-600' 
+                : 'bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300'
+            }`}
           >
-            {loading ? 'Loading...' : 'Refresh'}
+            {loading ? (
+              <>
+                <span>⏹</span>
+                <span>Terminate</span>
+              </>
+            ) : (
+              <span>Refresh</span>
+            )}
           </button>
         </div>
       </div>
@@ -400,6 +441,7 @@ export default function SqlViewDataDisplay({
           templateId={selectedTemplateId}
           onFilterChange={handleFilterChange}
           currentFilters={filters}
+          disabled={loading}
         />
       )}
 
@@ -516,6 +558,48 @@ export default function SqlViewDataDisplay({
           showFilter={true}
           showPagination={true}
         />
+      )}
+
+      {/* Show execution prompt when template is selected but no data yet */}
+      {selectedTemplateId && actualSqlViewUid && !useDebugData && data.length === 0 && !loading && !error && (
+        <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg mt-4">
+          <div className="text-gray-600 mb-4">
+            <div className="text-lg font-medium mb-2">📊 SQL View Ready</div>
+            <p className="text-sm mb-3">
+              The SQL view "{templates.find(t => t.id === selectedTemplateId)?.name}" is configured and ready to execute.
+            </p>
+            <div className="space-y-2 text-xs text-gray-500 mb-4">
+              <p>• Filters are optional - you can run the SQL view with or without them</p>
+              <p>• Click "Execute Without Filters" to run the SQL view as-is</p>
+              <p>• Or set parameters/filters above and click "Apply Filters"</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => selectedTemplateId && fetchSqlViewData(selectedTemplateId)}
+              disabled={loading}
+              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Executing...' : 'Execute SQL View Now'}
+            </button>
+            
+            {loading && (
+              <button
+                onClick={() => {
+                  console.log('🛑 Emergency terminate - reloading page to stop execution');
+                  clearError();
+                  // Emergency termination by reloading the page
+                  window.location.reload();
+                }}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 flex items-center space-x-2"
+                title="Emergency stop - will reload the page"
+              >
+                <span>⏹</span>
+                <span>Emergency Stop</span>
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Fallback message when no template is selected */}

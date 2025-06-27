@@ -1,266 +1,139 @@
-import { Fragment } from 'react';
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu, Transition } from '@headlessui/react';
-import { Session } from '@/types/auth';
-import InstanceSelector from './InstanceSelector';
+import { useRouter, usePathname } from 'next/navigation';
+import { useAuthStore } from '@/lib/stores/authStore';
+import { Button } from '@/components/ui/Button';
 
-interface HeaderProps {
-  session: Session | null;
-  onLogout: () => void;
-}
-
-export const Header = ({ session, onLogout }: HeaderProps) => {
+export default function Header() {
+  const router = useRouter();
   const pathname = usePathname();
-  
+  const { isAuthenticated, username, dhisBaseUrl, clearCredentials } = useAuthStore();
+  const [currentInstance, setCurrentInstance] = useState('demo');
+
+  const handleLogout = () => {
+    clearCredentials();
+    router.push('/');
+  };
+
+  const handleInstanceChange = (value: string) => {
+    if (value === 'new') {
+      alert('Add new instance functionality - This will open a modal to configure a new DHIS2 instance.');
+      setCurrentInstance('demo');
+    } else {
+      setCurrentInstance(value);
+    }
+  };
+
+  const isActive = (path: string) => {
+    return pathname === path || pathname.startsWith(path);
+  };
+
+  const navLinks = [
+    { href: '/dictionaries', label: 'Explore Dictionaries', icon: '📚' },
+    { href: '/generate', label: 'Generate New', icon: '➕' },
+    { href: '/instances', label: 'Instances', icon: '🔗' },
+    { href: '/sql-views', label: 'SQL Views', icon: '🔍' },
+  ];
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
-    <header className="bg-white shadow">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center">
-                <svg className="h-8 w-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-                </svg>
-                <span className="ml-2 text-xl font-bold text-gray-900">DHIS2 Metadata Dictionary</span>
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between py-4">
+          {/* Logo */}
+          <Link 
+            href="/dictionaries" 
+            className="flex items-center gap-2 text-blue-600 font-bold text-xl cursor-pointer hover:text-blue-700 transition-colors"
+          >
+            <span className="text-2xl">📊</span>
+            DHIS2 Metadata Dictionary
+          </Link>
+
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center gap-2 text-sm font-medium transition-colors px-3 py-2 rounded-lg ${
+                  isActive(link.href)
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                }`}
+              >
+                <span>{link.icon}</span>
+                {link.label}
               </Link>
-            </div>
-            
-            {/* Navigation Links - Only show when authenticated */}
-            {session && (
-              <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link 
-                  href="/data-elements" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    pathname?.startsWith('/data-elements') 
-                      ? 'border-blue-500 text-gray-900' 
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Data Elements
-                </Link>
-                
-                <Link 
-                  href="/indicators" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    pathname?.startsWith('/indicators') 
-                      ? 'border-blue-500 text-gray-900' 
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Indicators
-                </Link>
-                
-                <Link 
-                  href="/dashboards" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    pathname?.startsWith('/dashboards') 
-                      ? 'border-blue-500 text-gray-900' 
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  Dashboards
-                </Link>
-                
-                <Link 
-                  href="/sql-views" 
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    pathname?.startsWith('/sql-views') 
-                      ? 'border-blue-500 text-gray-900' 
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  }`}
-                >
-                  SQL Views
-                </Link>
-              </nav>
-            )}
+            ))}
           </div>
-          
-          {/* User Menu - Only show when authenticated */}
-          {session ? (
-            <div className="hidden sm:ml-6 sm:flex sm:items-center gap-4">
-              {/* Instance Selector */}
-              <InstanceSelector 
-                onInstanceChange={(instance) => {
-                  console.log('Instance changed to:', instance);
-                  // TODO: Implement instance switching logic
-                }}
-                onAddInstance={() => {
-                  console.log('Add new instance requested');
-                  // TODO: Implement add instance modal
-                }}
-              />
-              
-              <Menu as="div" className="ml-3 relative">
-                <div>
-                  <Menu.Button className="bg-white rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <span className="sr-only">Open user menu</span>
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-medium">
-                      {session.username.charAt(0).toUpperCase()}
-                    </div>
-                  </Menu.Button>
+
+          {/* User Menu */}
+          <div className="flex items-center gap-4">
+            {/* Instance Selector */}
+            <div className="instance-selector">
+              <span>Instance:</span>
+              <select
+                value={currentInstance}
+                onChange={(e) => handleInstanceChange(e.target.value)}
+                className="bg-transparent border-none focus:outline-none font-medium cursor-pointer"
+              >
+                <option value="demo">Demo DHIS2</option>
+                <option value="production">Production</option>
+                <option value="training">Training</option>
+                <option value="new">+ Add New Instance</option>
+              </select>
+            </div>
+
+            {/* User Avatar and Info */}
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                {username ? username.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="hidden sm:block">
+                <div className="text-sm font-medium text-gray-900">{username || 'User'}</div>
+                <div className="text-xs text-gray-500 truncate max-w-32">
+                  {dhisBaseUrl?.replace('https://', '').replace('/api', '') || 'Not connected'}
                 </div>
-                <Transition
-                  as={Fragment}
-                  enter="transition ease-out duration-200"
-                  enterFrom="transform opacity-0 scale-95"
-                  enterTo="transform opacity-100 scale-100"
-                  leave="transition ease-in duration-75"
-                  leaveFrom="transform opacity-100 scale-100"
-                  leaveTo="transform opacity-0 scale-95"
-                >
-                  <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                    <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-200">
-                      <p className="font-medium">{session.username}</p>
-                      <p className="text-gray-500 truncate">{session.serverUrl}</p>
-                    </div>
-                    
-                    <Menu.Item>
-                      {({ active }) => (
-                        <button
-                          onClick={onLogout}
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block w-full text-left px-4 py-2 text-sm text-gray-700`}
-                        >
-                          Logout
-                        </button>
-                      )}
-                    </Menu.Item>
-                  </Menu.Items>
-                </Transition>
-              </Menu>
+              </div>
             </div>
-          ) : (
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
-              <Link 
-                href="/" 
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Login
-              </Link>
-            </div>
-          )}
-          
-          {/* Mobile menu button */}
-          <div className="flex items-center sm:hidden">
-            <button
-              type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-              aria-controls="mobile-menu"
-              aria-expanded="false"
+
+            {/* Logout Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="text-gray-600 hover:text-gray-800 border-gray-300"
             >
-              <span className="sr-only">Open main menu</span>
-              <svg
-                className="block h-6 w-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
+              Logout
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden pb-4">
+          <div className="grid grid-cols-2 gap-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
+                  isActive(link.href)
+                    ? 'bg-blue-100 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
+                <span>{link.icon}</span>
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
-      
-      {/* Mobile menu, show/hide based on menu state */}
-      <div className="sm:hidden" id="mobile-menu">
-        {session && (
-          <div className="pt-2 pb-3 space-y-1">
-            <Link
-              href="/data-elements"
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname?.startsWith('/data-elements')
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-              }`}
-            >
-              Data Elements
-            </Link>
-            
-            <Link
-              href="/indicators"
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname?.startsWith('/indicators')
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-              }`}
-            >
-              Indicators
-            </Link>
-            
-            <Link
-              href="/dashboards"
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname?.startsWith('/dashboards')
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-              }`}
-            >
-              Dashboards
-            </Link>
-            
-            <Link
-              href="/sql-views"
-              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
-                pathname?.startsWith('/sql-views')
-                  ? 'bg-blue-50 border-blue-500 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-              }`}
-            >
-              SQL Views
-            </Link>
-          </div>
-        )}
-        
-        {session && (
-          <div className="pt-4 pb-3 border-t border-gray-200">
-            {/* Mobile Instance Selector */}
-            <div className="px-4 mb-4">
-              <InstanceSelector 
-                onInstanceChange={(instance) => {
-                  console.log('Instance changed to:', instance);
-                  // TODO: Implement instance switching logic
-                }}
-                onAddInstance={() => {
-                  console.log('Add new instance requested');
-                  // TODO: Implement add instance modal
-                }}
-              />
-            </div>
-            
-            <div className="flex items-center px-4">
-              <div className="flex-shrink-0">
-                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 font-medium text-lg">
-                  {session.username.charAt(0).toUpperCase()}
-                </div>
-              </div>
-              <div className="ml-3">
-                <div className="text-base font-medium text-gray-800">{session.username}</div>
-                <div className="text-sm font-medium text-gray-500 truncate max-w-[200px]">{session.serverUrl}</div>
-              </div>
-            </div>
-            <div className="mt-3 space-y-1">
-              <button
-                onClick={onLogout}
-                className="block w-full text-left px-4 py-2 text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </header>
+    </nav>
   );
-};
+}

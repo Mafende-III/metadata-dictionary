@@ -37,7 +37,7 @@ export class MetadataService {
     return rawData.rows.map((row: any[]) => {
       const transformed: any = {};
       
-      template.outputFields.forEach(field => {
+      template.outputFields.forEach((field: any) => {
         const mappedColumn = mapping.fieldMappings[field.column];
         if (mappedColumn) {
           const columnIndex = rawData.headers.findIndex((h: any) => h.column === mappedColumn);
@@ -58,7 +58,7 @@ export class MetadataService {
     return rawData.rows.map((row: any[]) => {
       const transformed: any = {};
       
-      template.outputFields.forEach((field, index) => {
+      template.outputFields.forEach((field: any, index: number) => {
         if (index < row.length) {
           transformed[field.column] = this.convertFieldValue(row[index], field.type);
         }
@@ -105,9 +105,9 @@ export class MetadataService {
     
     if (!template || !data.length) return '';
 
-    const headers = template.outputFields.map(f => f.name).join(',');
-    const rows = data.map(row => 
-      template.outputFields.map(field => row[field.column] || '').join(',')
+    const headers = template.outputFields.map((f: any) => f.name).join(',');
+    const rows = data.map((row: any) => 
+      template.outputFields.map((field: any) => row[field.column] || '').join(',')
     ).join('\n');
 
     return `${headers}\n${rows}`;

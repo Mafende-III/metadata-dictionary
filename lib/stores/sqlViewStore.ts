@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ConfiguredSqlView, SqlViewMapping } from '../types/sqlView';
+import { ConfiguredSqlView, SqlViewMapping } from '../../types/sqlView';
 
 interface SqlViewStore {
   configuredViews: Record<string, ConfiguredSqlView>;
