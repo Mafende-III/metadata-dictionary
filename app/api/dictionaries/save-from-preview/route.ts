@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Step 1: Create the dictionary first
+    // Step 1: Create the dictionary first with table structure preserved
     const dictionaryData = {
       name: dictionary_name,
       description: `Generated from SQL view preview on ${new Date().toLocaleDateString()}. Contains ${structured_data.length} ${metadata_type || 'dataElements'}.`,
@@ -59,7 +59,17 @@ export async function POST(request: NextRequest) {
       sql_view_id,
       group_id,
       processing_method: 'preview' as const,
-      period: new Date().getFullYear().toString()
+      period: new Date().getFullYear().toString(),
+      // Store the dynamic table structure from the preview
+      data: {
+        detected_columns: detected_columns,
+        column_metadata: column_metadata,
+        preview_structure: {
+          total_rows: structured_data.length,
+          table_format: 'dynamic',
+          source: 'sql_view_preview'
+        }
+      }
     };
 
     const newDictionary = await DictionaryService.createDictionary(dictionaryData);
@@ -74,23 +84,98 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
     const processedVariables = [];
 
+    // Helper function to extract UID from any column
+    const extractUID = (item: any) => {
+      // PRIORITY 1: Check for specific DHIS2 UID fields first (11-character alphanumeric)
+      const dhis2UidFields = ['data_element_id', 'indicator_id', 'program_indicator_id', 'uid', 'id'];
+      
+      for (const field of dhis2UidFields) {
+        if (item[field] && typeof item[field] === 'string' && 
+            item[field].length === 11 && /^[a-zA-Z0-9]{11}$/.test(item[field])) {
+          console.log(`🎯 Found DHIS2 UID in field '${field}': ${item[field]}`);
+          return item[field];
+        }
+      }
+      
+      // PRIORITY 2: Check standard UID field names
+      const standardUidFields = ['dataElementId', 'indicatorId', 'programIndicatorId', 'dataElementGroupId', 'indicatorGroupId'];
+      
+      for (const field of standardUidFields) {
+        if (item[field] && typeof item[field] === 'string' && 
+            item[field].length === 11 && /^[a-zA-Z0-9]{11}$/.test(item[field])) {
+          console.log(`🎯 Found DHIS2 UID in field '${field}': ${item[field]}`);
+          return item[field];
+        }
+      }
+      
+      // PRIORITY 3: Scan all fields that look like DHIS2 UIDs (11 characters, alphanumeric)
+      for (const [key, value] of Object.entries(item)) {
+        if (typeof value === 'string' && value.length === 11 && /^[a-zA-Z0-9]{11}$/.test(value)) {
+          console.log(`🔍 Found potential DHIS2 UID in column '${key}': ${value}`);
+          return value;
+        }
+      }
+      
+      console.warn(`⚠️ No valid DHIS2 UID found in item:`, Object.keys(item));
+      return null;
+    };
+
+    // Helper function to extract name from any column
+    const extractName = (item: any) => {
+      const nameFields = ['name', 'displayName', 'dataElementName', 'indicatorName', 'description', 'title'];
+      
+      for (const field of nameFields) {
+        if (item[field] && typeof item[field] === 'string' && item[field].trim().length > 0) {
+          return item[field].trim();
+        }
+      }
+      
+      // If no standard name field, use the first string field that's not a UID
+      for (const [key, value] of Object.entries(item)) {
+        if (typeof value === 'string' && value.length > 11 && value.trim().length > 0) {
+          return value.trim();
+        }
+      }
+      
+      return 'Unnamed Variable';
+    };
+
     for (const [index, item] of structured_data.entries()) {
       try {
-        // Extract metadata with fallbacks
-        const uid = item.uid || item.id || item.dataElementId || item.indicatorId || `generated_${crypto.randomUUID()}`;
-        const name = item.name || item.displayName || item.dataElementName || item.indicatorName || `Variable ${index + 1}`;
-        const code = item.code || item.shortName || '';
-        const description = item.description || item.formName || '';
+        // Extract UID from any column in the table
+        const uid = extractUID(item);
+        if (!uid) {
+          console.warn(`⚠️ No UID found for row ${index + 1}, skipping...`);
+          failed++;
+          continue;
+        }
 
-        // Calculate comprehensive quality score
+        // Extract name from any column in the table
+        const name = extractName(item);
+        
+        // Calculate quality score based on data completeness
         let itemQuality = 0;
-        if (name && name.length > 3) itemQuality += 20;
-        if (description && description.length > 10) itemQuality += 20;
-        if (code && code.length > 0) itemQuality += 20;
-        if (item.lastUpdated || item.created) itemQuality += 20;
-        if (item.valueType || item.indicatorType) itemQuality += 20;
+        const nonEmptyFields = Object.values(item).filter(v => v !== null && v !== undefined && String(v).trim() !== '').length;
+        const totalFields = Object.keys(item).length;
+        itemQuality = Math.round((nonEmptyFields / totalFields) * 100);
 
-        // Prepare variable data
+        // Generate clean data value API URL (without hardcoded period/orgUnit per DHIS2 docs)
+        const generateCleanDataValueApiUrl = (uid: string, metadataType: string, baseUrl: string) => {
+          switch (metadataType) {
+            case 'dataElements':
+              // Clean dataValueSets API - only mandatory dataElement parameter
+              return `${baseUrl}/api/dataValueSets?dataElement=${uid}`;
+            case 'indicators':
+            case 'programIndicators':
+              // Clean analytics API - only mandatory dimension parameter  
+              return `${baseUrl}/api/analytics?dimension=dx:${uid}`;
+            default:
+              // Default to analytics for unknown types
+              return `${baseUrl}/api/analytics?dimension=dx:${uid}`;
+          }
+        };
+
+        // Prepare variable data with the complete table row preserved
         const variableData = {
           dictionary_id: newDictionary.id,
           variable_uid: uid,
@@ -99,8 +184,10 @@ export async function POST(request: NextRequest) {
           quality_score: itemQuality,
           processing_time: Math.round((execution_time || 0) / structured_data.length),
           status: 'success' as const,
-          metadata_json: item,
-          analytics_url: `${instance.base_url}/analytics?dimension=${uid}&pe=THIS_YEAR&ou=USER_ORGUNIT`
+          metadata_json: item, // Store complete table row data
+          analytics_url: `${instance.base_url}/api/analytics?dimension=dx:${uid}`,
+          // Generate the clean data value API URL (no hardcoded parameters)
+          data_values_api: generateCleanDataValueApiUrl(uid, metadata_type || 'dataElements', instance.base_url)
         };
 
         // Create variable with comprehensive API URLs
@@ -113,14 +200,17 @@ export async function POST(request: NextRequest) {
         processedVariables.push(variable);
         successful++;
 
+        console.log(`✅ Processed ${name} (${uid}) with data value API: ${variableData.data_values_api}`);
+
         if (successful % 10 === 0) {
           console.log(`📈 Progress: ${successful}/${structured_data.length} variables processed`);
         }
 
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        console.error(`❌ Error creating variable for item ${index} (${item.name || item.displayName || 'unnamed'}):`, errorMsg);
-        errors.push(`Item ${index}: ${errorMsg}`);
+        const itemName = item.name || item.displayName || item.dataElementName || item.indicatorName || `item_${index}`;
+        console.error(`❌ Error creating variable for ${itemName}:`, errorMsg);
+        errors.push(`${itemName}: ${errorMsg}`);
         failed++;
       }
     }

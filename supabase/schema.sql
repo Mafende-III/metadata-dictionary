@@ -62,7 +62,16 @@ CREATE TABLE IF NOT EXISTS dictionary_variables (
   download_url TEXT,
   dhis2_url TEXT,
   export_formats JSONB DEFAULT '["json", "xml", "csv", "pdf"]',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  -- Enhanced columns for action tracking and group relationships
+  action TEXT DEFAULT 'imported' CHECK (action IN ('imported', 'created', 'updated', 'deprecated', 'replaced', 'merged')),
+  group_id TEXT,
+  group_name TEXT,
+  parent_group_id TEXT,
+  parent_group_name TEXT,
+  action_timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  action_details JSONB DEFAULT '{}', -- Additional action-specific metadata
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(dictionary_id, variable_uid)
 );
 
 -- User sessions and DHIS2 connections
@@ -170,6 +179,18 @@ CREATE TABLE IF NOT EXISTS processing_queue (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Analytics Cache table
+CREATE TABLE IF NOT EXISTS analytics_cache (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    dictionary_id UUID NOT NULL REFERENCES metadata_dictionaries(id) ON DELETE CASCADE,
+    variable_uid VARCHAR(100) NOT NULL,
+    data JSONB NOT NULL,
+    cached_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(dictionary_id, variable_uid)
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_dhis2_instances_status ON dhis2_instances(status);
 CREATE INDEX IF NOT EXISTS idx_metadata_dictionaries_instance ON metadata_dictionaries(instance_id);
@@ -185,6 +206,8 @@ CREATE INDEX IF NOT EXISTS idx_sql_view_executions_instance_id ON sql_view_execu
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_processing_queue_status ON processing_queue(status);
+CREATE INDEX IF NOT EXISTS idx_analytics_cache_dictionary_variable ON analytics_cache(dictionary_id, variable_uid);
+CREATE INDEX IF NOT EXISTS idx_analytics_cache_expires ON analytics_cache(expires_at);
 
 -- RLS (Row Level Security) policies
 ALTER TABLE dhis2_instances ENABLE ROW LEVEL SECURITY;
@@ -193,6 +216,7 @@ ALTER TABLE sql_view_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sql_view_executions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE processing_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE analytics_cache ENABLE ROW LEVEL SECURITY;
 
 -- Basic policies (adjust based on your auth system)
 CREATE POLICY IF NOT EXISTS "Allow all operations for now" ON dhis2_instances FOR ALL USING (true);
@@ -201,6 +225,7 @@ CREATE POLICY IF NOT EXISTS "Allow all operations for now" ON sql_view_templates
 CREATE POLICY IF NOT EXISTS "Allow all operations for now" ON sql_view_executions FOR ALL USING (true);
 CREATE POLICY IF NOT EXISTS "Allow all operations for now" ON user_sessions FOR ALL USING (true);
 CREATE POLICY IF NOT EXISTS "Allow all operations for now" ON processing_queue FOR ALL USING (true);
+CREATE POLICY IF NOT EXISTS "Allow all operations for now" ON analytics_cache FOR ALL USING (true);
 
 -- Update triggers for updated_at columns
 CREATE OR REPLACE FUNCTION update_updated_at_column()

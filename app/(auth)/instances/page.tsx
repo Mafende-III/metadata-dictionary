@@ -22,7 +22,8 @@ export default function InstancesPage() {
     name: '',
     base_url: '',
     username: '',
-    password: ''
+    password: '',
+    allowSelfSignedCerts: false
   });
   
   // Handle redirect parameters
@@ -139,7 +140,7 @@ export default function InstancesPage() {
       await InstanceService.createInstance(newInstance);
       await loadInstances();
       setShowAddModal(false);
-      setNewInstance({ name: '', base_url: '', username: '', password: '' });
+      setNewInstance({ name: '', base_url: '', username: '', password: '', allowSelfSignedCerts: false });
       
       // Show success message and redirect if came from generate page
       if (isRedirectedFromGenerate) {
@@ -462,6 +463,27 @@ export default function InstancesPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="allowSelfSignedCerts"
+                    checked={newInstance.allowSelfSignedCerts || false}
+                    onChange={(e) => setNewInstance(prev => ({ ...prev, allowSelfSignedCerts: e.target.checked }))}
+                    className="mt-1"
+                  />
+                  <div>
+                    <label htmlFor="allowSelfSignedCerts" className="text-sm font-medium text-yellow-800">
+                      Allow self-signed certificates
+                    </label>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      Enable this for internal DHIS2 instances with self-signed SSL certificates. 
+                      Only use this for trusted internal instances.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex gap-2 pt-4">

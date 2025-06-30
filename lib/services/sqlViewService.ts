@@ -74,17 +74,22 @@ export class SqlViewService {
   private apiService: SqlViewApiService;
   private sessionId: string | null = null;
 
-  constructor(baseUrl?: string, usernameOrAuth?: string, password?: string) {
+  constructor(
+    baseUrl?: string, 
+    usernameOrAuth?: string, 
+    password?: string,
+    options?: { allowSelfSignedCerts?: boolean }
+  ) {
     let client: DHIS2Client;
     
     if (password) {
       // Username and password provided separately
-      client = new DHIS2Client(baseUrl || '');
+      client = new DHIS2Client(baseUrl || '', undefined, options);
       client.setCredentials(usernameOrAuth || '', password);
       console.log('🔐 SQL View Service initialized with username/password auth');
     } else {
       // Auth token or base64 encoded credentials provided
-      client = new DHIS2Client(baseUrl || '', usernameOrAuth);
+      client = new DHIS2Client(baseUrl || '', usernameOrAuth, options);
       console.log('🔐 SQL View Service initialized with token auth');
     }
     

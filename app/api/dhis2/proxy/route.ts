@@ -23,6 +23,11 @@ export async function GET(request: NextRequest) {
             client = new DHIS2Client(session.serverUrl, token);
             authSource = 'supabase-session-with-auth-header';
             console.log(`🔐 Using Supabase session with auth header for ${session.serverUrl}`);
+            
+            // Log if this is an HTTP instance being proxied (this is good!)
+            if (session.serverUrl.startsWith('http://')) {
+              console.log(`🌐 Proxying HTTP instance: ${session.serverUrl} (bypasses mixed content policy)`);
+            }
           }
         }
       } catch (error) {
@@ -38,6 +43,11 @@ export async function GET(request: NextRequest) {
           client = DHIS2Client.fromSession(session);
           authSource = 'cookie-session';
           console.log(`🔐 Using cookie session for ${session.serverUrl} (user: ${session.username})`);
+          
+          // Log if this is an HTTP instance being proxied
+          if (session.serverUrl.startsWith('http://')) {
+            console.log(`🌐 Proxying HTTP instance: ${session.serverUrl} (bypasses mixed content policy)`);
+          }
         }
       } catch (error) {
         console.error('Error getting session from cookies:', error);
@@ -56,6 +66,12 @@ export async function GET(request: NextRequest) {
           client.setToken(token);
           authSource = 'auth-header-with-base-url';
           console.log(`🔐 Using auth header with provided base URL: ${baseUrl}`);
+          
+          // Log if this is an HTTP instance being proxied
+          if (baseUrl.startsWith('http://')) {
+            console.log(`🌐 Proxying HTTP instance: ${baseUrl} (bypasses mixed content policy)`);
+            console.log(`✅ Server-side proxy successfully handles HTTP instances for local development`);
+          }
         }
       }
     }
@@ -70,6 +86,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ 
         error: 'Authentication required', 
         details: 'No valid DHIS2 credentials found. Please log in first.',
+        helpForDevelopers: {
+          httpInstanceSupport: 'This proxy automatically supports HTTP instances for local development',
+          requiredHeaders: [
+            'Authorization: Basic <base64-encoded-credentials>',
+            'x-dhis2-base-url: <your-dhis2-instance-url>'
+          ],
+          exampleUsage: {
+            url: '/api/dhis2/proxy?path=/system/info',
+            headers: {
+              'Authorization': 'Basic <token>',
+              'x-dhis2-base-url': 'http://localhost:8080/api'
+            }
+          }
+        },
         availableAuthMethods: [
           'sessionId parameter with Authorization header',
           'Valid session in cookies',
@@ -83,11 +113,36 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Proxy request failed:', error);
     
-    const errorResponse = {
+    // Enhanced error handling with developer guidance
+    let errorResponse = {
       error: 'Proxy request failed',
       details: error.message || 'Unknown error',
       status: error.httpStatusCode || 500
     };
+
+    // Add specific guidance for common issues
+    if (error.code === 'ECONNREFUSED') {
+      errorResponse = {
+        ...errorResponse,
+        details: 'Connection refused - DHIS2 instance may be down or unreachable',
+        troubleshooting: [
+          'Check if DHIS2 instance is running',
+          'Verify the base URL is correct',
+          'Ensure no firewall is blocking the connection',
+          'For local instances, try using IP address instead of localhost'
+        ]
+      };
+    } else if (error.code === 'ENOTFOUND') {
+      errorResponse = {
+        ...errorResponse,
+        details: 'Host not found - check your DHIS2 instance URL',
+        troubleshooting: [
+          'Verify the hostname/IP address is correct',
+          'Check if the instance is accessible from the server',
+          'Ensure DNS resolution is working'
+        ]
+      };
+    }
 
     return NextResponse.json(errorResponse, { 
       status: error.httpStatusCode || 500 

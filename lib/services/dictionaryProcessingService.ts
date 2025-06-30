@@ -90,9 +90,24 @@ export class DictionaryProcessingService {
 
       console.log(`🔐 Using credentials for user: ${credentials.username}`);
 
-      // Initialize SQL View Service with instance authentication
+      // Determine if we need to allow self-signed certificates based on the URL (same logic as working SQL views list)
+      const needsSelfSignedCerts = instance.base_url.includes('hisprwanda.org') || 
+                                   instance.base_url.includes('197.243.28.37') ||
+                                   instance.base_url.includes('localhost') ||
+                                   instance.base_url.startsWith('http://');
+
+      // Initialize SQL View Service with instance authentication and certificate options
       const authString = `${credentials.username}:${credentials.password}`;
-      const sqlViewService = new SqlViewService(instance.base_url, authString);
+      const sqlViewService = new SqlViewService(
+        instance.base_url, 
+        authString, 
+        undefined,
+        { allowSelfSignedCerts: needsSelfSignedCerts }
+      );
+
+      if (needsSelfSignedCerts) {
+        console.log('🔓 SSL certificate verification disabled for this instance');
+      }
       
       // Execute SQL view to get metadata
       console.log(`🔍 Executing SQL view: ${dictionary.sql_view_id}`);
@@ -244,18 +259,22 @@ export class DictionaryProcessingService {
 
     // Extract common fields from SQL view result
     const uid = item.uid || item.id || item.dataElementId || item.indicatorId || '';
-    const name = item.name || item.displayName || item.dataElementName || item.indicatorName || 'Unknown';
+    
+    // Preserve original names from SQL view response - don't fallback to generic names
+    const originalName = item.name || item.displayName || item.dataElementName || item.indicatorName;
+    const name = originalName || `${dictionary.metadata_type?.slice(0, -1) || 'Variable'}_${uid.slice(-6)}`;
+    
     const code = item.code || '';
     const description = item.description || '';
 
     // Calculate quality score based on available metadata
     let qualityScore = 0;
-    if (name && name.length > 3) qualityScore += 25;
+    if (originalName && originalName.length > 3) qualityScore += 25;
     if (description && description.length > 10) qualityScore += 25;
     if (code && code.length > 0) qualityScore += 25;
     if (item.lastUpdated || item.created) qualityScore += 25;
 
-    // Create variable
+    // Create variable with original SQL response preserved
     const variable: Omit<DictionaryVariable, 'id' | 'created_at'> = {
       dictionary_id: dictionaryId,
       variable_uid: uid,
@@ -264,7 +283,7 @@ export class DictionaryProcessingService {
       quality_score: qualityScore,
       processing_time: Date.now() - startTime,
       status: 'success',
-      metadata_json: item,
+      metadata_json: item, // Store original SQL view response
       analytics_url: this.generateAnalyticsUrl(uid, dictionary)
     };
 

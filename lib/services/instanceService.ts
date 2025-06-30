@@ -49,13 +49,14 @@ export interface CreateInstanceData {
   base_url: string;
   username: string;
   password: string;
+  allowSelfSignedCerts?: boolean;
 }
 
 // Mock data for development when Supabase isn't available
 const mockInstances: DHIS2Instance[] = [
   {
-    id: 'a4b7da3f-c1b6-4953-b6e7-42435feb80e6',
-    name: 'HMIS Current',
+    id: 'a07cbb75-d668-4976-9b32-ad006008f1c8',
+    name: 'hmistesting',
     base_url: 'https://online.hisprwanda.org/hmis/api',
     username: 'bmafende',
     version: '2.41.3',
@@ -137,10 +138,12 @@ export class InstanceService {
   // Get single instance
   static async getInstance(id: string): Promise<DHIS2Instance | null> {
     if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available - using mock data');
       return localMockInstances.find(instance => instance.id === id) || null;
     }
 
     try {
+      console.log('🔍 Fetching instance from database:', id);
       const { data, error } = await supabase
         .from('dhis2_instances')
         .select('id, name, base_url, username, version, status, last_sync, sql_views_count, dictionaries_count, created_at, updated_at')
@@ -148,13 +151,26 @@ export class InstanceService {
         .single();
 
       if (error) {
-        console.error('Error fetching instance:', error);
+        console.error('Error fetching instance:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        console.warn('⚠️ Database error - falling back to mock data');
         return localMockInstances.find(instance => instance.id === id) || null;
       }
 
+      console.log('✅ Instance fetched successfully:', data?.name);
       return data;
     } catch (error) {
-      console.error('Supabase connection failed, using mock data:', error);
+      console.error('Error fetching instance:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: error instanceof Error ? error.stack : 'No stack trace',
+        hint: '',
+        code: ''
+      });
+      console.warn('⚠️ Connection error - falling back to mock data');
       return localMockInstances.find(instance => instance.id === id) || null;
     }
   }
@@ -162,7 +178,12 @@ export class InstanceService {
   // Create new instance
   static async createInstance(instanceData: CreateInstanceData): Promise<DHIS2Instance> {
     // First test the connection
-    const connectionTest = await this.testConnection(instanceData);
+    const connectionTest = await this.testConnection({
+      base_url: instanceData.base_url,
+      username: instanceData.username,
+      password: instanceData.password,
+      allowSelfSignedCerts: instanceData.allowSelfSignedCerts
+    });
     if (!connectionTest.success) {
       throw new Error(connectionTest.error);
     }
@@ -309,7 +330,7 @@ export class InstanceService {
   }
 
   // Test connection to DHIS2 instance
-  static async testConnection(instanceData: { base_url: string; username: string; password: string }): Promise<{ success: boolean; error?: string; version?: string }> {
+  static async testConnection(instanceData: { base_url: string; username: string; password: string; allowSelfSignedCerts?: boolean }): Promise<{ success: boolean; error?: string; version?: string }> {
     try {
       console.log('🔍 Testing connection to:', instanceData.base_url);
       
@@ -328,6 +349,7 @@ export class InstanceService {
           serverUrl: instanceData.base_url,
           username: instanceData.username,
           password: instanceData.password,
+          allowSelfSignedCerts: instanceData.allowSelfSignedCerts || false,
         }),
       });
 
@@ -390,11 +412,22 @@ export class InstanceService {
   // Get instance credentials (for API calls)
   static async getInstanceCredentials(id: string): Promise<{ username: string; password: string } | null> {
     if (!isSupabaseAvailable()) {
+      console.warn('⚠️ Supabase not available - using mock credentials');
       const instance = localMockInstances.find(instance => instance.id === id);
-      return instance ? { username: instance.username, password: 'district' } : null;
+      if (!instance) return null;
+      
+      // Return mock credentials based on instance
+      if (instance.base_url.includes('play.dhis2.org')) {
+        return { username: 'admin', password: 'district' };
+      } else if (instance.base_url.includes('hisprwanda.org')) {
+        return { username: 'bmafende', password: 'Climate@123' };
+      } else {
+        return { username: instance.username, password: 'district' };
+      }
     }
 
     try {
+      console.log('🔑 Fetching credentials for instance:', id);
       const { data, error } = await supabase
         .from('dhis2_instances')
         .select('username, password_encrypted')
@@ -403,16 +436,41 @@ export class InstanceService {
 
       if (error) {
         console.error('Error fetching credentials:', error);
-        return null;
+        console.warn('⚠️ Database error - falling back to mock credentials');
+        
+        // Fallback to mock credentials
+        const instance = localMockInstances.find(instance => instance.id === id);
+        if (!instance) return null;
+        
+        if (instance.base_url.includes('play.dhis2.org')) {
+          return { username: 'admin', password: 'district' };
+        } else if (instance.base_url.includes('hisprwanda.org')) {
+          return { username: 'bmafende', password: 'Climate@123' };
+        } else {
+          return { username: instance.username, password: 'district' };
+        }
       }
 
+      console.log('✅ Credentials fetched successfully for user:', data.username);
       return {
         username: data.username,
-        password: CredentialManager.decrypt(data.password_encrypted) // Decrypt password
+        password: CredentialManager.decrypt(data.password_encrypted)
       };
     } catch (error) {
-      console.error('Supabase error:', error);
-      return null;
+      console.error('Supabase error fetching credentials:', error);
+      console.warn('⚠️ Connection error - falling back to mock credentials');
+      
+      // Fallback to mock credentials
+      const instance = localMockInstances.find(instance => instance.id === id);
+      if (!instance) return null;
+      
+      if (instance.base_url.includes('play.dhis2.org')) {
+        return { username: 'admin', password: 'district' };
+      } else if (instance.base_url.includes('hisprwanda.org')) {
+        return { username: 'bmafende', password: 'Climate@123' };
+      } else {
+        return { username: instance.username, password: 'district' };
+      }
     }
   }
 

@@ -149,3 +149,51 @@ export function createSuccessResponse<T>(data: T, meta?: Record<string, unknown>
     }
   });
 }
+
+/**
+ * Get authenticated session for analytics and export APIs
+ * Returns session info needed for DHIS2 API calls
+ */
+export async function getAuthenticatedSession(req: NextRequest): Promise<{
+  serverUrl: string;
+  authHeader: string;
+  username: string;
+} | null> {
+  const authResult = await authenticateRequest(req);
+  
+  // Check if authentication failed
+  if ('error' in authResult) {
+    console.warn('No authenticated session available:', authResult.error);
+    return null;
+  }
+
+  // Extract credentials from the authenticated client
+  let authHeader = '';
+  
+  // Get the token from the DHIS2Client instance
+  // @ts-ignore - accessing private property for auth header
+  const token = authResult.client.getAuthToken?.() || '';
+  
+  if (token) {
+    authHeader = `Basic ${token}`;
+  } else {
+    // Fallback: generate basic auth from environment
+    const username = process.env.DHIS2_USERNAME;
+    const password = process.env.DHIS2_PASSWORD;
+    if (username && password) {
+      const token = Buffer.from(`${username}:${password}`).toString('base64');
+      authHeader = `Basic ${token}`;
+    }
+  }
+
+  if (!authHeader) {
+    console.warn('Could not generate auth header for session');
+    return null;
+  }
+
+  return {
+    serverUrl: authResult.serverUrl,
+    authHeader: authHeader,
+    username: authResult.username || 'unknown'
+  };
+}

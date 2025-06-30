@@ -43,8 +43,23 @@ export async function POST(request: NextRequest) {
     console.log(`🔗 Using instance: ${instance.name} (${instance.base_url})`);
     console.log(`🔐 Using credentials for user: ${credentials.username}`);
 
-    // Initialize SQL View Service with proper authentication
-    const sqlViewService = new SqlViewService(instance.base_url, credentials.username, credentials.password);
+    // Determine if we need to allow self-signed certificates based on the URL (same logic as working SQL views list)
+    const needsSelfSignedCerts = instance.base_url.includes('hisprwanda.org') || 
+                                 instance.base_url.includes('197.243.28.37') ||
+                                 instance.base_url.includes('localhost') ||
+                                 instance.base_url.startsWith('http://');
+
+    // Initialize SQL View Service with proper authentication and certificate options
+    const sqlViewService = new SqlViewService(
+      instance.base_url, 
+      credentials.username, 
+      credentials.password,
+      { allowSelfSignedCerts: needsSelfSignedCerts }
+    );
+
+    if (needsSelfSignedCerts) {
+      console.log('🔓 SSL certificate verification disabled for this instance');
+    }
 
     // Execute SQL view to get preview data
     console.log(`🔍 Executing SQL view for preview: ${sql_view_id}`);

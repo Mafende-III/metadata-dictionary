@@ -38,7 +38,15 @@ export interface DictionaryVariable {
   api_url?: string;
   download_url?: string;
   dhis2_url?: string;
+  data_values_api?: string; // ✅ Added missing field for clean data value API URLs
   export_formats?: string[];
+  action?: 'imported' | 'created' | 'updated' | 'deprecated' | 'replaced' | 'merged';
+  group_id?: string;
+  group_name?: string;
+  parent_group_id?: string;
+  parent_group_name?: string;
+  action_timestamp?: string;
+  action_details?: any;
   created_at: string;
 }
 
@@ -52,6 +60,16 @@ export interface CreateDictionaryData {
   group_id?: string;
   processing_method: 'batch' | 'individual';
   period?: string;
+}
+
+// Enhanced interface for data element action tracking
+export interface DataElementWithAction {
+  DATA_ELEMENT_ID: string;
+  DATA_ELEMENT_NAME: string;
+  GROUP_ID: string;
+  GROUP_NAME: string;
+  action?: 'imported' | 'created' | 'updated' | 'deprecated' | 'replaced' | 'merged';
+  action_details?: any;
 }
 
 // Mock data for development when Supabase isn't available
@@ -603,5 +621,114 @@ export class DictionaryService {
       status: 'generating',
       updated_at: new Date().toISOString()
     });
+  }
+
+  /**
+   * Save data elements with action tracking and group relationships
+   */
+  static async saveDataElementsWithActions(
+    dictionaryId: string,
+    dataElements: DataElementWithAction[],
+    instanceBaseUrl: string,
+    instanceId: string
+  ): Promise<{ successful: number; failed: number; variables: DictionaryVariable[] }> {
+    if (!supabase) {
+      throw new Error('Supabase client not available');
+    }
+
+    console.log(`💾 Saving ${dataElements.length} data elements with action tracking for dictionary: ${dictionaryId}`);
+
+    const processedVariables: DictionaryVariable[] = [];
+    let successful = 0;
+    let failed = 0;
+
+    for (const element of dataElements) {
+      try {
+        // Calculate quality score based on available data
+        let qualityScore = 0;
+        if (element.DATA_ELEMENT_NAME && element.DATA_ELEMENT_NAME.length > 3) qualityScore += 25;
+        if (element.GROUP_NAME && element.GROUP_NAME.length > 0) qualityScore += 25;
+        if (element.DATA_ELEMENT_ID && element.DATA_ELEMENT_ID.length === 11) qualityScore += 25; // Valid DHIS2 UID
+        if (element.action && element.action !== 'imported') qualityScore += 25; // Has specific action
+
+        // Determine action based on name patterns or default to 'imported'
+        let elementAction = element.action || 'imported';
+        
+        // Auto-detect actions based on naming patterns
+        if (element.DATA_ELEMENT_NAME.includes('DQ -')) {
+          elementAction = 'created'; // Quality indicators are typically system-generated
+        } else if (element.DATA_ELEMENT_NAME.includes('Quantile')) {
+          elementAction = 'updated'; // Quantile indicators suggest data transformation
+        }
+
+        // Prepare variable data with enhanced action tracking
+        const variableData = {
+          dictionary_id: dictionaryId,
+          variable_uid: element.DATA_ELEMENT_ID,
+          variable_name: element.DATA_ELEMENT_NAME,
+          variable_type: 'dataElements',
+          quality_score: qualityScore,
+          processing_time: 0, // Set during processing
+          status: 'success' as const,
+          metadata_json: {
+            originalData: element,
+            dhis2_metadata: {
+              id: element.DATA_ELEMENT_ID,
+              name: element.DATA_ELEMENT_NAME,
+              group: {
+                id: element.GROUP_ID,
+                name: element.GROUP_NAME
+              }
+            }
+          },
+          analytics_url: `${instanceBaseUrl}/api/analytics?dimension=dx:${element.DATA_ELEMENT_ID}`,
+          api_url: `${instanceBaseUrl}/api/dataElements/${element.DATA_ELEMENT_ID}.json`,
+          download_url: `${instanceBaseUrl}/api/dataElements/${element.DATA_ELEMENT_ID}.csv`,
+          dhis2_url: `${instanceBaseUrl}/dhis-web-maintenance/index.html#/edit/dataElementSection/dataElement/${element.DATA_ELEMENT_ID}`,
+          export_formats: ['json', 'xml', 'csv', 'pdf'],
+          // Enhanced action tracking fields
+          action: elementAction,
+          group_id: element.GROUP_ID,
+          group_name: element.GROUP_NAME,
+          action_timestamp: new Date().toISOString(),
+          action_details: {
+            source: 'manual_import',
+            batch_size: dataElements.length,
+            detected_type: element.DATA_ELEMENT_NAME.includes('DQ -') ? 'quality_indicator' : 
+                           element.DATA_ELEMENT_NAME.includes('Quantile') ? 'analytics_derived' : 'standard',
+            ...(element.action_details || {})
+          }
+        };
+
+        // Insert variable with enhanced data
+        const { data, error } = await supabase
+          .from('dictionary_variables')
+          .insert(variableData)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        processedVariables.push(data as DictionaryVariable);
+        successful++;
+
+        console.log(`✅ Saved data element: ${element.DATA_ELEMENT_NAME} (${elementAction})`);
+
+      } catch (error) {
+        console.error(`❌ Failed to save data element ${element.DATA_ELEMENT_ID}:`, error);
+        failed++;
+      }
+    }
+
+    // Update dictionary statistics
+    await this.updateDictionaryStats(dictionaryId);
+
+    console.log(`📊 Data elements save complete: ${successful} successful, ${failed} failed`);
+
+    return {
+      successful,
+      failed,
+      variables: processedVariables
+    };
   }
 } 

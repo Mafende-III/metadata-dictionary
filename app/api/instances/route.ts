@@ -17,7 +17,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, base_url, username, password } = body;
+    const { name, base_url, username, password, allowSelfSignedCerts } = body;
 
     if (!name || !base_url || !username || !password) {
       return NextResponse.json(
@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
       name,
       base_url,
       username,
-      password
+      password,
+      allowSelfSignedCerts
     });
 
     return NextResponse.json(instance, { status: 201 });

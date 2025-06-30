@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+// REMOVED: import { Inter } from 'next/font/google';  ← This was causing the app crash
 import { Suspense } from 'react';
 import QueryProvider from '@/src/providers/QueryProvider';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+// REMOVED: const inter = Inter({ subsets: ['latin'] });  ← This too
 
 export const metadata: Metadata = {
   title: 'DHIS2 Metadata Dictionary',
@@ -35,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className="font-sans antialiased">
         <QueryProvider>
           <Suspense fallback={<GlobalLoader />}>
             {children}
@@ -44,4 +44,4 @@ export default function RootLayout({
       </body>
     </html>
   );
-} 
+}
