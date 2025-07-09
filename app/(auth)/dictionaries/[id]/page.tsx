@@ -20,7 +20,8 @@ import {
   Play,
   Search,
   Download as DownloadIcon,
-  Code
+  Code,
+  Trash2
 } from 'lucide-react';
 
 interface Dictionary {
@@ -186,6 +187,31 @@ export default function DictionaryDetailPage() {
       }
     } catch (err) {
       console.error('Error fetching analytics data:', err);
+    }
+  };
+
+  // Delete dictionary
+  const deleteDictionary = async () => {
+    if (!confirm(`Are you sure you want to delete the dictionary "${dictionary?.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/dictionaries/${dictionaryId}`, {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Dictionary deleted successfully');
+        router.push('/dictionaries');
+      } else {
+        throw new Error(result.error || 'Failed to delete dictionary');
+      }
+    } catch (err) {
+      console.error('Error deleting dictionary:', err);
+      alert(`Error deleting dictionary: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -714,6 +740,14 @@ export default function DictionaryDetailPage() {
                     <FileText className="w-4 h-4" />
                     <span>CSV</span>
                   </button>
+
+                  <button 
+                    onClick={deleteDictionary}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
                 </>
               )}
               
@@ -768,7 +802,7 @@ export default function DictionaryDetailPage() {
               >
                 <div className="flex items-center space-x-2">
                   <BarChart3 className="w-4 h-4" />
-                  <span>Analytics</span>
+                  <span>Data Analysis</span>
                 </div>
               </button>
             </div>
@@ -942,8 +976,11 @@ export default function DictionaryDetailPage() {
                     <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">
                       ✨ Enhanced with Action Tracking
                     </span>
+                    <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">
+                      🔗 API URLs Included
+                    </span>
                     <span className="text-xs text-gray-500">
-                      Shows: DATA_ELEMENT_ID | DATA_ELEMENT_NAME | GROUP_ID | GROUP_NAME | ACTION
+                      Complete API access for each variable
                     </span>
                   </div>
                 </div>
@@ -1025,7 +1062,10 @@ export default function DictionaryDetailPage() {
                           ));
                         })()}
                         <th className="border border-gray-200 px-4 py-2 text-left">Quality</th>
-                        <th className="border border-gray-200 px-4 py-2 text-left">Data Value API</th>
+                        <th className="border border-gray-200 px-4 py-2 text-left">
+                          <div className="font-semibold text-gray-900">API URLs</div>
+                          <div className="text-xs text-gray-500">Click to copy API endpoints</div>
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1092,10 +1132,10 @@ export default function DictionaryDetailPage() {
                               </span>
                             </td>
                             
-                            {/* Data Value API */}
+                            {/* API URLs */}
                             <td className="border border-gray-200 px-4 py-2">
                               <div className="space-y-1">
-                                {/* Data Value API Button - The key feature */}
+                                {/* Data Value API Button - Only for dataElements */}
                                 {variable.data_values_api && (
                                   <button
                                     onClick={() => {
@@ -1103,21 +1143,43 @@ export default function DictionaryDetailPage() {
                                       alert('Data Value API URL copied!');
                                     }}
                                     className="flex items-center space-x-1 text-orange-600 hover:text-orange-800 text-xs px-2 py-1 rounded hover:bg-orange-50 w-full border border-orange-200"
-                                    title="Copy Data Value API URL for this specific variable"
+                                    title="Copy Data Value API URL - Get raw data values for this variable"
                                   >
                                     <Copy className="w-3 h-3" />
-                                    <span>Data Values</span>
+                                    <span>Data Value Api</span>
                                   </button>
                                 )}
                                 
-                                {/* Analytics API */}
+                                {/* Analytics API - Always available */}
                                 <button
-                                  onClick={() => fetchAnalyticsData(variable.variable_uid)}
-                                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-xs px-2 py-1 rounded hover:bg-blue-50 w-full"
-                                  title="View analytics data"
+                                  onClick={() => {
+                                    const analyticsUrl = variable.analytics_api || variable.analytics_url;
+                                    if (analyticsUrl) {
+                                      navigator.clipboard.writeText(analyticsUrl);
+                                      alert('Analytics API URL copied!');
+                                    }
+                                  }}
+                                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-xs px-2 py-1 rounded hover:bg-blue-50 w-full border border-blue-200"
+                                  title="Copy Analytics API URL - Get aggregated analytics data"
                                 >
-                                  <BarChart3 className="w-3 h-3" />
-                                  <span>Analytics</span>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Analytics Api</span>
+                                </button>
+
+                                {/* Metadata API - Always available */}
+                                <button
+                                  onClick={() => {
+                                    const metadataUrl = variable.metadata_api || variable.api_url;
+                                    if (metadataUrl) {
+                                      navigator.clipboard.writeText(metadataUrl);
+                                      alert('Metadata API URL copied!');
+                                    }
+                                  }}
+                                  className="flex items-center space-x-1 text-green-600 hover:text-green-800 text-xs px-2 py-1 rounded hover:bg-green-50 w-full border border-green-200"
+                                  title="Copy Metadata API URL - Get detailed metadata for this variable"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                  <span>Metadata Api</span>
                                 </button>
                               </div>
                             </td>

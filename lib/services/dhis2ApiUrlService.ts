@@ -277,10 +277,13 @@ export class DHIS2ApiUrlService {
       url = url.slice(0, -1);
     }
     
-    // Ensure it ends with /api
+    // Ensure it ends with /api, but avoid duplication
     if (!url.endsWith('/api')) {
-      if (url.includes('/api/')) {
-        // Extract base URL up to /api
+      if (url.endsWith('/api/')) {
+        // Remove the extra slash if it ends with /api/
+        url = url.slice(0, -1);
+      } else if (url.includes('/api/')) {
+        // Extract base URL up to /api (without trailing slash)
         url = url.substring(0, url.indexOf('/api') + 4);
       } else {
         // Add /api
@@ -288,6 +291,7 @@ export class DHIS2ApiUrlService {
       }
     }
     
+    console.log(`🔧 Normalized base URL: ${url}`);
     return url;
   }
 
