@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 // REMOVED: import { Inter } from 'next/font/google';  ← This was causing the app crash
 import { Suspense } from 'react';
 import QueryProvider from '@/src/providers/QueryProvider';
+import AccessLogger from '@/src/components/AccessLogger';
 import './globals.css';
 
 // REMOVED: const inter = Inter({ subsets: ['latin'] });  ← This too
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="font-sans antialiased">
         <QueryProvider>
+          <AccessLogger />
           <Suspense fallback={<GlobalLoader />}>
             {children}
           </Suspense>

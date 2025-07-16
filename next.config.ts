@@ -6,6 +6,18 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  // Production output configuration
+  output: 'standalone',
+  
+  // Allow external network access in development
+  allowedDevOrigins: [
+    'http://192.168.4.186:3000',
+    'http://192.168.4.*:3000',
+    'http://192.168.*.*:3000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ],
+
   // Performance optimizations
   experimental: {
     optimizePackageImports: ['@tanstack/react-query', '@tanstack/react-table', 'lucide-react'],
@@ -31,9 +43,30 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 31536000, // 1 year
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    domains: ['dictionary.mafendeblaise.info', 'localhost'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'dictionary.mafendeblaise.info',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.dhis2.org',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
 
-  // Headers for performance
+  // Headers for performance and security
   async headers() {
     return [
       {
@@ -46,6 +79,18 @@ const nextConfig: NextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'DENY'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin'
+          },
+          {
+            key: 'X-Access-Log',
+            value: 'enabled'
           },
         ],
       },
