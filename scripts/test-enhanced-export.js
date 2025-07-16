@@ -63,10 +63,10 @@ const mockVariables = [
       CATEGORY_COMBO: 'Default',
       VALUE_TYPE: 'INTEGER'
     },
-    analytics_api: 'https://play.dhis2.org/40/api/analytics?dimension=dx:abcd1234567&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT',
-    metadata_api: 'https://play.dhis2.org/40/api/dataElements/abcd1234567.json',
-    data_values_api: 'https://play.dhis2.org/40/api/dataValueSets?dataElement=abcd1234567&period=THIS_YEAR&orgUnit=USER_ORGUNIT',
-    export_api: 'https://play.dhis2.org/40/api/dataElements/abcd1234567.csv',
+    analytics_api: 'https://play.im.dhis2.org/stable-2-40-8-1//analytics?dimension=dx:abcd1234567&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT',
+    metadata_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataElements/abcd1234567.json',
+    data_values_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataValueSets?dataElement=abcd1234567&period=THIS_YEAR&orgUnit=USER_ORGUNIT',
+    export_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataElements/abcd1234567.csv',
     web_ui_url: 'https://play.dhis2.org/40/dhis-web-maintenance/index.html#/edit/dataElementSection/dataElement/abcd1234567'
   },
   {
@@ -86,10 +86,10 @@ const mockVariables = [
       CATEGORY_COMBO: 'Default',
       VALUE_TYPE: 'INTEGER'
     },
-    analytics_api: 'https://play.dhis2.org/40/api/analytics?dimension=dx:efgh5678901&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT',
-    metadata_api: 'https://play.dhis2.org/40/api/dataElements/efgh5678901.json',
-    data_values_api: 'https://play.dhis2.org/40/api/dataValueSets?dataElement=efgh5678901&period=THIS_YEAR&orgUnit=USER_ORGUNIT',
-    export_api: 'https://play.dhis2.org/40/api/dataElements/efgh5678901.csv',
+    analytics_api: 'https://play.im.dhis2.org/stable-2-40-8-1//analytics?dimension=dx:efgh5678901&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT',
+    metadata_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataElements/efgh5678901.json',
+    data_values_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataValueSets?dataElement=efgh5678901&period=THIS_YEAR&orgUnit=USER_ORGUNIT',
+    export_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataElements/efgh5678901.csv',
     web_ui_url: 'https://play.dhis2.org/40/dhis-web-maintenance/index.html#/edit/dataElementSection/dataElement/efgh5678901'
   },
   {
@@ -109,10 +109,10 @@ const mockVariables = [
       CATEGORY_COMBO: 'Quantile',
       VALUE_TYPE: 'NUMBER'
     },
-    analytics_api: 'https://play.dhis2.org/40/api/analytics?dimension=dx:ijkl9012345&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT',
-    metadata_api: 'https://play.dhis2.org/40/api/dataElements/ijkl9012345.json',
-    data_values_api: 'https://play.dhis2.org/40/api/dataValueSets?dataElement=ijkl9012345&period=THIS_YEAR&orgUnit=USER_ORGUNIT',
-    export_api: 'https://play.dhis2.org/40/api/dataElements/ijkl9012345.csv',
+    analytics_api: 'https://play.im.dhis2.org/stable-2-40-8-1//analytics?dimension=dx:ijkl9012345&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT',
+    metadata_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataElements/ijkl9012345.json',
+    data_values_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataValueSets?dataElement=ijkl9012345&period=THIS_YEAR&orgUnit=USER_ORGUNIT',
+    export_api: 'https://play.im.dhis2.org/stable-2-40-8-1//dataElements/ijkl9012345.csv',
     web_ui_url: 'https://play.dhis2.org/40/dhis-web-maintenance/index.html#/edit/dataElementSection/dataElement/ijkl9012345'
   }
 ];

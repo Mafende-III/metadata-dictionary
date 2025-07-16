@@ -51,6 +51,7 @@ export default function GeneratePage() {
   const [processingQueue, setProcessingQueue] = useState<QueueItem[]>([]);
   const [previewQueue, setPreviewQueue] = useState<DictionaryPreview[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processingEstimate, setProcessingEstimate] = useState<ProcessingEstimate | null>(null);
   const [stats, setStats] = useState<{
@@ -477,6 +478,9 @@ export default function GeneratePage() {
   const processQueueItems = async (items: QueueItem[]) => {
     const startTime = Date.now();
     let successCount = 0;
+    
+    setIsProcessing(true);
+    setError(null);
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -550,6 +554,201 @@ export default function GeneratePage() {
     }
 
     console.log(`✅ Individual processing completed: ${successCount}/${items.length} successful`);
+    setIsProcessing(false);
+    
+    // 🔧 Processing complete - user can now manually generate dictionary
+  };
+
+  // Generate dictionary from individual processing results
+  const handleGenerateDictionaryFromIndividualResults = async () => {
+    const successfulItems = processingQueue.filter(item => item.status === 'success');
+    
+    if (successfulItems.length === 0) {
+      setError('No successful items to create dictionary from');
+      return;
+    }
+
+    console.log(`🔄 Generating dictionary from ${successfulItems.length} individual results`);
+    setIsGenerating(true);
+    setError(null);
+    
+    // Show progress to user
+    setProcessingQueue(prev => prev.map(item => ({
+      ...item,
+      status: item.status === 'success' ? 'processing' : item.status
+    })));
+
+    try {
+      // Step 1: Make individual API calls for each successful item
+      const individualResults = [];
+      
+      for (const item of successfulItems) {
+        try {
+          console.log(`🔄 Fetching detailed data for: ${item.name} (${item.id})`);
+          
+          // Update UI to show this item is being processed
+          setProcessingQueue(prev => prev.map(qItem => 
+            qItem.id === item.id 
+              ? { ...qItem, status: 'processing' }
+              : qItem
+          ));
+          
+          // Use the correct parameter name from the error: dataElementId
+          const parameterNames = ['dataElementId'];
+          let success = false;
+          let data = null;
+          
+          for (const paramName of parameterNames) {
+            try {
+              console.log(`🔄 Trying parameter name: ${paramName}`);
+              
+              // Add timeout to prevent indefinite waiting
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 seconds
+              
+              const response = await fetch('/api/dhis2/sql-views/execute-parameterized', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  sqlViewId: sqlViewId,
+                  instanceId: selectedInstance,
+                  parameters: {
+                    [paramName]: item.id
+                  }
+                }),
+                signal: controller.signal
+              });
+              
+              clearTimeout(timeoutId);
+
+              if (response.ok) {
+                const responseData = await response.json();
+                if (responseData.success && responseData.data && responseData.data.length > 0) {
+                  data = responseData;
+                  success = true;
+                  console.log(`✅ Success with parameter: ${paramName}`);
+                  break;
+                }
+              } else {
+                console.warn(`⚠️ Failed with parameter ${paramName}: ${response.status}`);
+                const errorData = await response.json().catch(() => null);
+                console.log(`Error details:`, errorData);
+                
+                // Handle specific error cases
+                if (response.status === 504) {
+                  console.warn(`⚠️ Gateway timeout for ${item.name} - SQL view query took too long`);
+                }
+              }
+            } catch (paramError: any) {
+              console.warn(`⚠️ Error with parameter ${paramName}:`, paramError);
+              
+              // Handle abort/timeout errors
+              if (paramError.name === 'AbortError') {
+                console.warn(`⚠️ Request timed out for ${item.name} after 90 seconds`);
+              }
+            }
+          }
+
+          if (success && data) {
+            individualResults.push({
+              ...item,
+              detailedData: data.data || data,
+              apiCallSuccess: true
+            });
+            
+            // Update UI to show this item succeeded
+            setProcessingQueue(prev => prev.map(qItem => 
+              qItem.id === item.id 
+                ? { ...qItem, status: 'success' }
+                : qItem
+            ));
+          } else {
+            console.warn(`⚠️ All parameter attempts failed for ${item.name}`);
+            individualResults.push({
+              ...item,
+              detailedData: null,
+              apiCallSuccess: false,
+              apiError: `All parameter attempts failed`
+            });
+            
+            // Update UI to show this item failed
+            setProcessingQueue(prev => prev.map(qItem => 
+              qItem.id === item.id 
+                ? { ...qItem, status: 'error' }
+                : qItem
+            ));
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching data for ${item.name}:`, error);
+          individualResults.push({
+            ...item,
+            detailedData: null,
+            apiCallSuccess: false,
+            apiError: error instanceof Error ? error.message : 'Unknown error'
+          });
+          
+          // Update UI to show this item failed
+          setProcessingQueue(prev => prev.map(qItem => 
+            qItem.id === item.id 
+              ? { ...qItem, status: 'error' }
+              : qItem
+          ));
+        }
+      }
+
+      // Step 2: Merge successful results - FLATTEN the SQL view data
+      const successfulApiCalls = individualResults.filter(result => result.apiCallSuccess);
+      
+      // Extract the actual SQL view data from detailedData array
+      const mergedData = [];
+      for (const result of successfulApiCalls) {
+        if (result.detailedData && Array.isArray(result.detailedData)) {
+          // Each item in detailedData is a row from the SQL view
+          for (const sqlRow of result.detailedData) {
+            // Add processing metadata to each SQL row
+            mergedData.push({
+              ...sqlRow,
+              // Add quality and processing info as additional columns
+              _processing_quality: result.quality,
+              _processing_time: result.processingTime,
+              _processing_status: result.status
+            });
+          }
+        }
+      }
+
+      // Step 3: Create dictionary preview from merged data
+      const preview: DictionaryPreview = {
+        preview_id: `dict_individual_${Date.now()}`,
+        dictionary_name: dictName,
+        instance_id: selectedInstance,
+        instance_name: instances.find(i => i.id === selectedInstance)?.name || '',
+        metadata_type: metadataType || 'dataElements',
+        sql_view_id: sqlViewId,
+        group_id: groupFilter,
+        raw_data: mergedData, // Flattened SQL view data
+        headers: mergedData.length > 0 ? Object.keys(mergedData[0]) : [],
+        row_count: mergedData.length,
+        preview_count: mergedData.length,
+        status: 'ready',
+        processing_method: 'individual',
+        created_at: new Date().toISOString()
+      };
+
+      setPreviewQueue(prev => [...prev, preview]);
+      console.log(`✅ Dictionary generated from individual processing results`);
+      console.log(`📊 Merged ${successfulApiCalls.length} successful API calls out of ${successfulItems.length} items`);
+      
+      setError(null);
+      
+    } catch (error) {
+      console.error('Error generating dictionary from individual results:', error);
+      setError('Failed to generate dictionary from individual results');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // New preview-based workflow
@@ -795,6 +994,23 @@ export default function GeneratePage() {
         error_message: 'Cancelled by user'
       } : p
     ));
+  };
+
+  // Handle processing queue termination
+  const handleTerminateProcessing = async () => {
+    if (isProcessing) {
+      console.log('🛑 Cancelling processing queue');
+      setIsProcessing(false);
+      
+      // Update all active processing items to error state
+      setProcessingQueue(prev => prev.map(item => ({
+        ...item,
+        status: item.status === 'processing' ? 'error' : item.status,
+        error: item.status === 'processing' ? 'Cancelled by user' : item.error
+      })));
+      
+      setError('Processing was cancelled');
+    }
     
     setIsGenerating(false);
   };
@@ -1139,6 +1355,16 @@ export default function GeneratePage() {
               </div>
             </Card>
             
+            {/* Processing Queue - Individual Items */}
+            {processingQueue.length > 0 && (
+              <ProcessingQueue
+                items={processingQueue}
+                onTerminate={handleTerminateProcessing}
+                isProcessing={isProcessing}
+                onGenerateDictionary={handleGenerateDictionaryFromIndividualResults}
+              />
+            )}
+            
             {/* Dictionary Preview Queue */}
             {previewQueue.length > 0 ? (
               <DictionaryPreviewQueue
@@ -1149,7 +1375,7 @@ export default function GeneratePage() {
                 onSaveDictionary={handleSaveDictionary}
                 maxVisible={10}
               />
-            ) : (
+            ) : processingQueue.length === 0 ? (
               <Card className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Dictionary Preview Queue</h3>
                 <div className="text-center py-8 text-gray-500">
@@ -1158,7 +1384,7 @@ export default function GeneratePage() {
                   <p className="text-sm mt-2">Click "Generate Preview" to see SQL view data before creating dictionaries</p>
                 </div>
               </Card>
-            )}
+            ) : null}
           </div>
         </div>
       )}

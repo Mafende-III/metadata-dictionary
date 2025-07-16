@@ -50,7 +50,7 @@ A Next.js web application that connects to DHIS2 instances to analyze, assess, a
    SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
    # DHIS2 (optional defaults)
-   NEXT_PUBLIC_DHIS2_BASE_URL=https://play.dhis2.org/40/api
+   NEXT_PUBLIC_DHIS2_BASE_URL=https://play.im.dhis2.org/stable-2-40-8-1/
    DHIS2_DEFAULT_USERNAME=admin
    DHIS2_DEFAULT_PASSWORD=district
 

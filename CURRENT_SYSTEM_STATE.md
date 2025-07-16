@@ -158,7 +158,7 @@ Each metadata page (`/data-elements`, `/indicators`, `/dashboards`) includes:
 ### Quick Test Flow
 1. **Access Application:** http://localhost:3001
 2. **Login:** Use DHIS2 demo credentials (pre-filled)
-   - URL: `https://play.dhis2.org/40/api`
+   - URL: `https://play.im.dhis2.org/stable-2-40-8-1/`
    - Username: `admin`
    - Password: `district`
 3. **Navigate:** Use sidebar menu to access different sections

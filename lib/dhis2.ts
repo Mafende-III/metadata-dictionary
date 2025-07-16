@@ -162,7 +162,7 @@ export class DHIS2Client {
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
       httpsAgent: httpsAgent,
-      timeout: 30000, // 30 second timeout
+      timeout: 120000, // 2 minute timeout for SQL view execution
       headers: authHeaders
     });
 
@@ -942,6 +942,6 @@ Endpoint Not Found: The DHIS2 API endpoint was not found
 
 // Create a client from the environment variables
 export const createDefaultClient = (): DHIS2Client => {
-  const serverUrl = process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api';
+  const serverUrl = process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.im.dhis2.org/stable-2-40-8-1/';
   return new DHIS2Client(serverUrl);
 }; 

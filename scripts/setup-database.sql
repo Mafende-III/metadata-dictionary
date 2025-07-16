@@ -81,7 +81,7 @@ CREATE TRIGGER update_metadata_dictionaries_updated_at BEFORE UPDATE ON metadata
 INSERT INTO dhis2_instances (id, name, base_url, username, password_encrypted, version, status, sql_views_count, dictionaries_count) 
 VALUES 
     ('a4b7da3f-c1b6-4953-b6e7-42435feb80e6'::uuid, 'HMIS Current', 'https://online.hisprwanda.org/hmis/api', 'bmafende', encode(digest('district', 'sha256'), 'base64'), '2.41.3', 'connected', 14, 3),
-    ('67950ada-2fba-4e6f-aa94-a44f33aa8d20'::uuid, 'Demo DHIS2', 'https://play.dhis2.org/40/api', 'admin', encode(digest('district', 'sha256'), 'base64'), '2.40.1', 'connected', 12, 2)
+    ('67950ada-2fba-4e6f-aa94-a44f33aa8d20'::uuid, 'Demo DHIS2', 'https://play.im.dhis2.org/stable-2-40-8-1/', 'admin', encode(digest('district', 'sha256'), 'base64'), '2.40.1', 'connected', 12, 2)
 ON CONFLICT (base_url, username) DO UPDATE SET
     name = EXCLUDED.name,
     password_encrypted = EXCLUDED.password_encrypted,

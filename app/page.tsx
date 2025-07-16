@@ -9,7 +9,7 @@ export default function Home() {
   const { setCredentials, isAuthenticated, dhisBaseUrl, clearCredentials } = useAuthStore();
   
   const [formData, setFormData] = useState({
-    baseUrl: 'https://play.dhis2.org/40/api',
+    baseUrl: 'https://play.im.dhis2.org/stable-2-40-8-1/',
     username: 'admin',
     password: 'district'
   });
@@ -150,7 +150,7 @@ export default function Home() {
                     value={formData.baseUrl}
                     onChange={(e) => setFormData(prev => ({ ...prev, baseUrl: e.target.value }))}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://play.dhis2.org/40/api"
+                    placeholder="https://play.im.dhis2.org/stable-2-40-8-1/"
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -298,7 +298,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
           <div 
             className="feature-card card-hover"
-            onClick={() => setShowLoginForm(true)}
+            onClick={() => router.push('/dictionaries')}
           >
             <div className="feature-icon">
               📚

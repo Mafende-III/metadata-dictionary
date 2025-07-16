@@ -8,7 +8,7 @@ INSERT INTO dhis2_instances (
   status
 ) VALUES (
   'DHIS2 Demo Server',
-  'https://play.dhis2.org/40/api',
+  'https://play.im.dhis2.org/stable-2-40-8-1/',
   'admin',
   'ZGlzdHJpY3Q=', -- Base64 encoded 'district'
   '2.40.1',

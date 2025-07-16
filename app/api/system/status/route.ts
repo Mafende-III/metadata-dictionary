@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          serverUrl: 'https://play.dhis2.org/40/api',
+          serverUrl: 'https://play.im.dhis2.org/stable-2-40-8-1/',
           username: 'test',
           password: 'test'
         })

@@ -43,6 +43,7 @@ interface DictionaryPreviewQueueProps {
   onTerminateAll?: () => void;
   onViewJson?: (preview: DictionaryPreview) => void;
   onConvertToTable?: (preview: DictionaryPreview) => void;
+  onResetPreview?: (previewId: string) => void;
   onSaveDictionary?: (preview: DictionaryPreview) => void;
   maxVisible?: number;
 }
@@ -53,6 +54,7 @@ export default function DictionaryPreviewQueue({
   onTerminateAll,
   onViewJson,
   onConvertToTable,
+  onResetPreview,
   onSaveDictionary,
   maxVisible = 10
 }: DictionaryPreviewQueueProps) {
@@ -163,6 +165,17 @@ export default function DictionaryPreviewQueue({
               >
                 <TableCellsIcon className="h-4 w-4 mr-1" />
                 Convert to Table
+              </Button>
+            )}
+            {preview.status === 'converted' && onResetPreview && (
+              <Button
+                onClick={() => onResetPreview(preview.preview_id)}
+                variant="outline"
+                size="sm"
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600"
+              >
+                <ArrowPathIcon className="h-4 w-4 mr-1" />
+                Reset to Re-convert
               </Button>
             )}
           </div>
@@ -279,6 +292,18 @@ export default function DictionaryPreviewQueue({
                   >
                     <EyeIcon className="h-4 w-4" />
                   </Button>
+
+                  {preview.status === 'converted' && onResetPreview && (
+                    <Button
+                      onClick={() => onResetPreview(preview.preview_id)}
+                      variant="outline"
+                      size="sm"
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-600"
+                    >
+                      <ArrowPathIcon className="h-4 w-4 mr-1" />
+                      Reset to Re-convert
+                    </Button>
+                  )}
 
                   {preview.status === 'converted' && onSaveDictionary && (
                     <Button

@@ -70,7 +70,7 @@ const mockInstances: DHIS2Instance[] = [
   {
     id: '67950ada-2fba-4e6f-aa94-a44f33aa8d20',
     name: 'Demo DHIS2',
-    base_url: 'https://play.dhis2.org/40/api',
+    base_url: 'https://play.im.dhis2.org/stable-2-40-8-1/',
     username: 'admin',
     version: '2.40.1',
     status: 'connected',

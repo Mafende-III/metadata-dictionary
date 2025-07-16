@@ -70,7 +70,7 @@ You should see:
 2. Click **"Add New Instance"**
 3. Fill in your DHIS2 connection details:
    - Instance Name: (e.g., "Demo DHIS2")
-   - DHIS2 URL: (e.g., "https://play.dhis2.org/40/api")
+   - DHIS2 URL: (e.g., "https://play.im.dhis2.org/stable-2-40-8-1/")
    - Username: (your DHIS2 username)
    - Password: (your DHIS2 password)
 

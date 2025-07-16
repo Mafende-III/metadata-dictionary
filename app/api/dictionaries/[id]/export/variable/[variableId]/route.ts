@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getAuthenticatedSession } from '@/lib/middleware/auth';
+import { 
+  isEnhancedExportEnabled, 
+  isGroupValidationEnabled, 
+  isDynamicColumnsEnabled,
+  recordExportError,
+  recordGroupValidationError,
+  recordDynamicColumnsError
+} from '@/lib/utils/featureFlags';
 
 export async function GET(
   request: NextRequest,
@@ -157,8 +165,37 @@ async function fetchVariableData(session: any, variable: any, period: string, or
   }
 }
 
-// Generate export data in different formats
+// 🔑 ENHANCED: Generate export data with feature flags, error tracking and group validation
 async function generateExportData(variable: any, data: any, format: string, options: any) {
+  // 🔑 FEATURE FLAGS: Check if enhanced features are enabled
+  const enhancedExportFeatureEnabled = isEnhancedExportEnabled();
+  const groupValidationFeatureEnabled = isGroupValidationEnabled();
+  const dynamicColumnsFeatureEnabled = isDynamicColumnsEnabled();
+  
+  console.log('🎛️ Feature flags status:', {
+    enhancedExport: enhancedExportFeatureEnabled,
+    groupValidation: groupValidationFeatureEnabled,
+    dynamicColumns: dynamicColumnsFeatureEnabled
+  });
+
+  try {
+    // 🔑 ENHANCED: Check for enhanced export data and group validation issues
+    const enhancedExportData = enhancedExportFeatureEnabled ? (variable.enhanced_export_data || {}) : {};
+    const hasEnhancedData = enhancedExportFeatureEnabled && 
+                           enhancedExportData.complete_table_row && 
+                           Object.keys(enhancedExportData.complete_table_row).length > 0;
+    
+    // 🔑 NEW: Group validation tracking (with feature flag)
+    const groupValidation = groupValidationFeatureEnabled ? (enhancedExportData.group_context || {}) : {};
+    const groupValidationStatus = {
+      has_group_context: groupValidationFeatureEnabled && !!groupValidation.group_id,
+      group_id: groupValidation.group_id,
+      metadata_type: groupValidation.metadata_type,
+      potential_issues: groupValidation.validation_notes || [],
+      validation_timestamp: new Date().toISOString(),
+      feature_enabled: groupValidationFeatureEnabled
+    };
+
   const baseExport = {
     variable: {
       uid: variable.variable_uid,
@@ -167,12 +204,23 @@ async function generateExportData(variable: any, data: any, format: string, opti
       description: data.metadata?.description || variable.metadata_json?.description,
       qualityScore: variable.quality_score
     },
-    // Complete previewed table structure
-    complete_table_row: variable.metadata_json || {},
+    // 🔑 ENHANCED: Complete previewed table structure with fallback and feature flags
+    complete_table_row: hasEnhancedData ? enhancedExportData.complete_table_row : (variable.metadata_json || {}),
     table_structure: {
       source: 'sql_view_preview',
-      dynamic_structure: true,
-      original_columns: variable.metadata_json ? Object.keys(variable.metadata_json) : []
+      dynamic_structure: dynamicColumnsFeatureEnabled,
+      original_columns: hasEnhancedData ? 
+        Object.keys(enhancedExportData.complete_table_row) : 
+        (variable.metadata_json ? Object.keys(variable.metadata_json) : []),
+      // 🔑 NEW: Enhanced export metadata with feature flags
+      enhanced_export_version: hasEnhancedData ? '1.0.0' : 'legacy',
+      detected_columns: dynamicColumnsFeatureEnabled ? (enhancedExportData.detected_columns || []) : [],
+      table_preservation_status: hasEnhancedData ? 'complete' : 'basic',
+      feature_flags: {
+        enhanced_export_enabled: enhancedExportFeatureEnabled,
+        group_validation_enabled: groupValidationFeatureEnabled,
+        dynamic_columns_enabled: dynamicColumnsFeatureEnabled
+      }
     },
     analytics: data.analytics,
     metadata: data.metadata,
@@ -183,19 +231,104 @@ async function generateExportData(variable: any, data: any, format: string, opti
       export: variable.export_api,
       web_ui: variable.web_ui_url
     },
+    // 🔑 NEW: Group validation and error tracking
+    group_validation: groupValidationStatus,
     exportInfo: {
       period: options.period,
       orgUnit: options.orgUnit,
       exportedAt: new Date().toISOString(),
       format: format,
-      includes_complete_table: true,
-      source: 'dynamic_table_structure'
+      includes_complete_table: hasEnhancedData,
+      source: 'dynamic_table_structure',
+      // 🔑 NEW: Enhanced export tracking
+      enhanced_export_features: {
+        complete_table_preservation: hasEnhancedData,
+        dynamic_columns_preserved: (enhancedExportData.detected_columns || []).length > 0,
+        group_validation_available: !!groupValidation.group_id,
+        fallback_used: !hasEnhancedData
+      }
     }
   };
 
   // Add curl command if requested
   if (options.includeCurl && options.session) {
     baseExport.curlCommand = generateCurlCommand(variable, options.session, options.period, options.orgUnit);
+  }
+
+  return baseExport;
+
+  } catch (error) {
+    // 🔑 ERROR TRACKING: Record errors for feature flag monitoring
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error in export generation';
+    
+    if (enhancedExportFeatureEnabled) {
+      recordExportError(`Export generation failed: ${errorMessage}`);
+    }
+    
+    if (groupValidationFeatureEnabled) {
+      recordGroupValidationError(`Group validation failed: ${errorMessage}`);
+    }
+    
+    if (dynamicColumnsFeatureEnabled) {
+      recordDynamicColumnsError(`Dynamic columns processing failed: ${errorMessage}`);
+    }
+    
+    console.error('❌ Enhanced export generation failed:', error);
+    
+    // 🔑 FALLBACK: Return basic export structure when enhanced features fail
+    return {
+      variable: {
+        uid: variable.variable_uid,
+        name: variable.variable_name,
+        type: variable.variable_type,
+        qualityScore: variable.quality_score
+      },
+      complete_table_row: variable.metadata_json || {},
+      table_structure: {
+        source: 'sql_view_preview',
+        dynamic_structure: false,
+        original_columns: variable.metadata_json ? Object.keys(variable.metadata_json) : [],
+        enhanced_export_version: 'fallback',
+        detected_columns: [],
+        table_preservation_status: 'basic',
+        feature_flags: {
+          enhanced_export_enabled: false,
+          group_validation_enabled: false,
+          dynamic_columns_enabled: false
+        },
+        error_fallback: true,
+        error_message: errorMessage
+      },
+      analytics: data.analytics,
+      metadata: data.metadata,
+      enhanced_api_endpoints: {
+        analytics: variable.analytics_api,
+        metadata: variable.metadata_api,
+        data_values: variable.data_values_api,
+        export: variable.export_api,
+        web_ui: variable.web_ui_url
+      },
+      group_validation: {
+        has_group_context: false,
+        feature_enabled: false,
+        error_fallback: true
+      },
+      exportInfo: {
+        period: options.period,
+        orgUnit: options.orgUnit,
+        exportedAt: new Date().toISOString(),
+        format: format,
+        includes_complete_table: false,
+        source: 'fallback_after_error',
+        enhanced_export_features: {
+          complete_table_preservation: false,
+          dynamic_columns_preserved: false,
+          group_validation_available: false,
+          fallback_used: true,
+          error_occurred: true
+        }
+      }
+    };
   }
 
   switch (format) {

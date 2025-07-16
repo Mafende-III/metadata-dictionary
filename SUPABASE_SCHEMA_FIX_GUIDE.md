@@ -170,13 +170,13 @@ curl -u "username:password" "https://instance.com/api/sqlViews.json"
 #### **Correct Instance URL Formats:**
 ```typescript
 ✅ CORRECT:
-- "https://play.dhis2.org/40/api"
+- "https://play.im.dhis2.org/stable-2-40-8-1/"
 - "https://hmis.example.com/api" 
 - "http://localhost:8080/api"
 
 ❌ INCORRECT:
 - "https://play.dhis2.org/40" (missing /api)
-- "https://play.dhis2.org/40/api/" (trailing slash)
+- "https://play.im.dhis2.org/stable-2-40-8-1//" (trailing slash)
 - "https://play.dhis2.org/40/dhis" (wrong path)
 ```
 

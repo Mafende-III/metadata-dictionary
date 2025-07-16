@@ -21,7 +21,7 @@ const config = {
     serviceRoleKey: validateOptionalEnvVar('SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY),
   },
   dhis2: {
-    defaultUrl: process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.dhis2.org/40/api',
+    defaultUrl: process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 'https://play.im.dhis2.org/stable-2-40-8-1/',
     username: process.env.DHIS2_USERNAME,
     password: process.env.DHIS2_PASSWORD,
   },

@@ -87,7 +87,7 @@ async function getAuthenticatedServiceLegacy(request: NextRequest): Promise<SqlV
     // Use environment variable for base URL or require it in headers
     const baseUrl = request.headers.get('x-dhis2-base-url') || 
                    process.env.NEXT_PUBLIC_DHIS2_BASE_URL || 
-                   'https://play.dhis2.org/40/api';
+                   'https://play.im.dhis2.org/stable-2-40-8-1/';
     console.log('🌐 Using base URL:', baseUrl);
     return new SqlViewService(baseUrl, token);
   }

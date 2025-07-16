@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Step 1: Create the dictionary first with table structure preserved
+    // Step 1: Create the dictionary first with ENHANCED table structure preserved
     const dictionaryData = {
       name: dictionary_name,
       description: `Generated from SQL view preview on ${new Date().toLocaleDateString()}. Contains ${structured_data.length} ${metadata_type || 'dataElements'}.`,
@@ -60,14 +60,29 @@ export async function POST(request: NextRequest) {
       group_id,
       processing_method: 'preview' as const,
       period: new Date().getFullYear().toString(),
-      // Store the dynamic table structure from the preview
+      // 🔑 ENHANCED: Store complete dynamic table structure for exports
       data: {
-        detected_columns: detected_columns,
-        column_metadata: column_metadata,
+        detected_columns: detected_columns || [],
+        column_metadata: column_metadata || {},
         preview_structure: {
           total_rows: structured_data.length,
           table_format: 'dynamic',
           source: 'sql_view_preview'
+        },
+        // 🔑 NEW: Enhanced export metadata
+        enhanced_export: {
+          enabled: true,
+          version: '1.0.0',
+          created_at: new Date().toISOString(),
+          table_structure_preserved: true,
+          dynamic_columns_count: (detected_columns || []).length,
+          // Track group validation issues
+          group_validation: {
+            group_id: group_id,
+            metadata_type: metadata_type || 'dataElements',
+            validation_status: 'pending', // Will be updated during processing
+            validation_errors: []
+          }
         }
       }
     };
@@ -175,7 +190,17 @@ export async function POST(request: NextRequest) {
           }
         };
 
-        // Prepare variable data with the complete table row preserved
+        // 🔑 ENHANCED: Add generated API URLs as additional columns to the SQL view data
+        const enhancedItem = {
+          ...item, // Original SQL view columns
+          // Add generated API URLs as additional columns
+          export_api: `${instance.base_url}/api/${metadata_type || 'dataElements'}/${uid}.json`,
+          web_ui_url: `${instance.base_url}/dhis-web-maintenance/index.html#/edit/${metadata_type || 'dataElements'}/${uid}`,
+          analytics_url: `${instance.base_url}/api/analytics?dimension=dx:${uid}`,
+          data_values_api: generateCleanDataValueApiUrl(uid, metadata_type || 'dataElements', instance.base_url)
+        };
+
+        // 🔑 ENHANCED: Prepare variable data with enhanced table row
         const variableData = {
           dictionary_id: newDictionary.id,
           variable_uid: uid,
@@ -184,9 +209,8 @@ export async function POST(request: NextRequest) {
           quality_score: itemQuality,
           processing_time: Math.round((execution_time || 0) / structured_data.length),
           status: 'success' as const,
-          metadata_json: item, // Store complete table row data
+          metadata_json: enhancedItem, // 🔑 ENHANCED: Store enhanced table row with API URLs as columns
           analytics_url: `${instance.base_url}/api/analytics?dimension=dx:${uid}`,
-          // Generate the clean data value API URL (no hardcoded parameters)
           data_values_api: generateCleanDataValueApiUrl(uid, metadata_type || 'dataElements', instance.base_url)
         };
 

@@ -335,7 +335,7 @@ export default function DictionaryDetailPage() {
 
     const baseUrl = dictionary.instance_name.includes('HMIS') 
       ? 'https://online.hisprwanda.org/hmis/api' 
-      : 'https://play.dhis2.org/40/api';
+      : 'https://play.im.dhis2.org/stable-2-40-8-1/';
 
     const exportData = {
       dictionary: {
@@ -440,7 +440,7 @@ export default function DictionaryDetailPage() {
   const generateCurlCommand = (variable: DictionaryVariable) => {
     const baseUrl = dictionary?.instance_name.includes('HMIS') 
       ? 'https://online.hisprwanda.org/hmis/api' 
-      : 'https://play.dhis2.org/40/api';
+      : 'https://play.im.dhis2.org/stable-2-40-8-1/';
     
     return `curl -X GET "${baseUrl}/analytics?dimension=dx:${variable.variable_uid}&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT" \\
   -H "Authorization: Basic $(echo -n 'username:password' | base64)" \\
@@ -459,7 +459,7 @@ export default function DictionaryDetailPage() {
     try {
       const baseUrl = dictionary.instance_name.includes('HMIS') 
         ? 'https://online.hisprwanda.org/hmis/api' 
-        : 'https://play.dhis2.org/40/api';
+        : 'https://play.im.dhis2.org/stable-2-40-8-1/';
       
       // For now, provide common org unit options
       // In production, this would fetch from the actual DHIS2 instance

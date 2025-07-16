@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DHIS2Client } from '../../../../lib/dhis2';
 import { InstanceService } from '../../../../lib/services/instanceService';
+import { createDHIS2ClientFromInstance } from '../../../../lib/utils/dhis2ClientFactory';
 
 interface MetadataGroup {
   id: string;
@@ -51,9 +52,8 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Create DHIS2 client with instance credentials
-    const dhis2Client = new DHIS2Client(instance.base_url);
-    dhis2Client.setCredentials(credentials.username, credentials.password);
+    // Create DHIS2 client with standardized SSL configuration based on instance data
+    const dhis2Client = await createDHIS2ClientFromInstance(instance, credentials);
 
     console.log(`🔐 Using instance: ${instance.name} (${instance.base_url})`);
 

@@ -37,7 +37,7 @@ The system includes these test instances:
    - Password: Climate@123
 
 2. **Demo DHIS2** (ID: 67950ada-2fba-4e6f-aa94-a44f33aa8d20)
-   - URL: https://play.dhis2.org/40/api
+   - URL: https://play.im.dhis2.org/stable-2-40-8-1/
    - Username: admin
    - Password: district
 

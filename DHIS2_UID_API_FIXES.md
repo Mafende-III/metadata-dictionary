@@ -12,8 +12,8 @@ The user identified critical issues where the system was generating and using **
 - **Impact**: All API URLs were broken because they used generated UUIDs instead of valid DHIS2 metadata UIDs
 
 ### 2. **Incorrect API Endpoints**
-- **Issue**: API URLs used generated UUIDs: `https://play.dhis2.org/40/api/analytics?dimension=dx:generated_42df1b46...`
-- **Expected**: Proper DHIS2 UIDs: `https://play.dhis2.org/40/api/analytics?dimension=dx:OwvmJaiVIBU`
+- **Issue**: API URLs used generated UUIDs: `https://play.im.dhis2.org/stable-2-40-8-1//analytics?dimension=dx:generated_42df1b46...`
+- **Expected**: Proper DHIS2 UIDs: `https://play.im.dhis2.org/stable-2-40-8-1//analytics?dimension=dx:OwvmJaiVIBU`
 - **Impact**: No API calls would work with the DHIS2 instance
 
 ### 3. **Instance Source Confusion**
@@ -162,9 +162,9 @@ After these fixes, your JSON export should show:
     "data_element_id": "OwvmJaiVIBU"  // ✅ Original DHIS2 UID preserved
   },
   "api_endpoints": {
-    "analytics": "https://play.dhis2.org/40/api/analytics?dimension=dx:OwvmJaiVIBU&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT",
-    "metadata": "https://play.dhis2.org/40/api/dataElements/OwvmJaiVIBU.json",
-    "dataValues": "https://play.dhis2.org/40/api/dataValueSets?dataElement=OwvmJaiVIBU&period=THIS_YEAR&orgUnit=USER_ORGUNIT"
+    "analytics": "https://play.im.dhis2.org/stable-2-40-8-1//analytics?dimension=dx:OwvmJaiVIBU&dimension=pe:THIS_YEAR&dimension=ou:USER_ORGUNIT",
+    "metadata": "https://play.im.dhis2.org/stable-2-40-8-1//dataElements/OwvmJaiVIBU.json",
+    "dataValues": "https://play.im.dhis2.org/stable-2-40-8-1//dataValueSets?dataElement=OwvmJaiVIBU&period=THIS_YEAR&orgUnit=USER_ORGUNIT"
   }
 }
 ```

@@ -111,7 +111,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # Optional: Default DHIS2 for testing
-NEXT_PUBLIC_DHIS2_BASE_URL=https://play.dhis2.org/40/api
+NEXT_PUBLIC_DHIS2_BASE_URL=https://play.im.dhis2.org/stable-2-40-8-1/
 NEXT_PUBLIC_DHIS2_USERNAME=admin
 NEXT_PUBLIC_DHIS2_PASSWORD=district
 ```
